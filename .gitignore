@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+mobile/build/
+functions/lib/
+admin/.next/
+admin/out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+
+# Flutter
+mobile/.dart_tool/
+mobile/.packages
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/pubspec.lock
+
+# Drift generated
+*.g.dart
+
+# Coverage
+coverage/
+*.lcov
+
+# Misc
+*.log
+*.local

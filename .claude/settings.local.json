@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__search_files",
+      "mcp__filesystem__read_text_file",
+      "Bash(flutter --version:*)",
+      "Bash(node:*)",
+      "Bash(npm --version:*)",
+      "Bash(firebase:*)",
+      "Bash(dart --version:*)",
+      "Bash(flutterfire --version:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(java -version:*)",
+      "Bash(flutter config:*)",
+      "Bash(npm install:*)",
+      "Bash(dart pub global activate:*)",
+      "Bash(flutter create:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter pub add:*)",
+      "Bash(dart run build_runner:*)",
+      "Bash(where flutter)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(\"C:\\\\Users\\\\sayin\\\\OneDrive\\\\Desktop\\\\radio moble app\\\\flutter\\\\bin\\\\flutter.bat\" run -d web-server --web-port 8080)",
+      "Bash(mklink /J \"C:\\\\flutter\" \"C:\\\\Users\\\\sayin\\\\OneDrive\\\\Desktop\\\\radio moble app\\\\flutter\")",
+      "Bash(cmd //c \"mklink /J C:\\\\flutter \"\"C:\\\\Users\\\\sayin\\\\OneDrive\\\\Desktop\\\\radio moble app\\\\flutter\"\"\")",
+      "Bash(C:\\\\flutter\\\\bin\\\\flutter --version)",
+      "Bash(cmd //c \"C:\\\\flutter\\\\bin\\\\flutter.bat --version\")",
+      "Bash(cmd //c:*)",
+      "Bash(flutter pub remove:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
