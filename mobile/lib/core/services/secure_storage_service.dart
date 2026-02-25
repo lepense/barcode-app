@@ -1,5 +1,6 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 /// Abstract secure storage for tokens and sensitive keys.
-/// Implementation will use flutter_secure_storage.
 abstract class SecureStorageService {
   Future<void> write(String key, String value);
   Future<String?> read(String key);
@@ -7,26 +8,23 @@ abstract class SecureStorageService {
   Future<void> deleteAll();
 }
 
-/// TODO: Implement in Phase 2 with flutter_secure_storage.
+/// Implementation using flutter_secure_storage (Keychain on iOS, Keystore on Android).
 class FlutterSecureStorageService implements SecureStorageService {
-  @override
-  Future<void> write(String key, String value) async {
-    // TODO: Implement with FlutterSecureStorage
-  }
+  final FlutterSecureStorage _storage;
+
+  FlutterSecureStorageService()
+      : _storage = const FlutterSecureStorage();
 
   @override
-  Future<String?> read(String key) async {
-    // TODO: Implement with FlutterSecureStorage
-    return null;
-  }
+  Future<void> write(String key, String value) =>
+      _storage.write(key: key, value: value);
 
   @override
-  Future<void> delete(String key) async {
-    // TODO: Implement with FlutterSecureStorage
-  }
+  Future<String?> read(String key) => _storage.read(key: key);
 
   @override
-  Future<void> deleteAll() async {
-    // TODO: Implement with FlutterSecureStorage
-  }
+  Future<void> delete(String key) => _storage.delete(key: key);
+
+  @override
+  Future<void> deleteAll() => _storage.deleteAll();
 }

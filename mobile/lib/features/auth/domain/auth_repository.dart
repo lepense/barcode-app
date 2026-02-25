@@ -1,4 +1,4 @@
-/// Abstract auth repository — implementation will use Firebase Auth.
+/// Abstract auth repository — implementation uses Firebase Auth.
 abstract class AuthRepository {
   /// Stream of authenticated user (null = signed out)
   Stream<AuthUser?> get authStateChanges;
@@ -30,4 +30,13 @@ class AuthUser {
     this.photoUrl,
     required this.provider,
   });
+}
+
+/// Auth-specific exception with user-friendly message.
+class AuthException implements Exception {
+  final String message;
+  const AuthException(this.message);
+
+  @override
+  String toString() => message;
 }

@@ -1,50 +1,154 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:google_sign_in/google_sign_in.dart';
+
 import '../domain/auth_repository.dart';
 
 /// Firebase implementation of [AuthRepository].
-/// TODO: Implement in Phase 2 when Firebase is configured.
 class FirebaseAuthRepository implements AuthRepository {
+  final fb.FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
+
+  FirebaseAuthRepository({
+    fb.FirebaseAuth? auth,
+    GoogleSignIn? googleSignIn,
+  })  : _auth = auth ?? fb.FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ?? GoogleSignIn();
+
   @override
   Stream<AuthUser?> get authStateChanges {
-    // TODO: return FirebaseAuth.instance.authStateChanges().map(...)
-    return Stream.value(null);
+    return _auth.authStateChanges().map(_mapUser);
   }
 
   @override
-  AuthUser? get currentUser => null;
+  AuthUser? get currentUser => _mapUser(_auth.currentUser);
 
   @override
   Future<AuthUser> signInWithGoogle() async {
-    throw UnimplementedError('Google sign-in not yet implemented');
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      throw AuthException('Google sign-in cancelled');
+    }
+
+    final googleAuth = await googleUser.authentication;
+    final credential = fb.GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final result = await _auth.signInWithCredential(credential);
+    final user = _mapUser(result.user);
+    if (user == null) throw AuthException('Sign-in failed');
+    return user;
   }
 
   @override
   Future<AuthUser> signInWithApple() async {
-    throw UnimplementedError('Apple sign-in not yet implemented');
+    // Apple sign-in requires sign_in_with_apple package (iOS only)
+    // Deferred — will be implemented when iOS build is ready
+    throw AuthException('Apple sign-in not available on this platform');
   }
 
   @override
   Future<AuthUser> signInWithEmail(String email, String password) async {
-    throw UnimplementedError('Email sign-in not yet implemented');
+    try {
+      final result = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final user = _mapUser(result.user);
+      if (user == null) throw AuthException('Sign-in failed');
+      return user;
+    } on fb.FirebaseAuthException catch (e) {
+      throw AuthException(_mapFirebaseError(e.code));
+    }
   }
 
   @override
   Future<AuthUser> signUpWithEmail(
-      String email, String password, String displayName) async {
-    throw UnimplementedError('Email sign-up not yet implemented');
+    String email,
+    String password,
+    String displayName,
+  ) async {
+    try {
+      final result = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      await result.user?.updateDisplayName(displayName);
+      // Reload to pick up display name
+      await result.user?.reload();
+      final user = _mapUser(_auth.currentUser);
+      if (user == null) throw AuthException('Sign-up failed');
+      return user;
+    } on fb.FirebaseAuthException catch (e) {
+      throw AuthException(_mapFirebaseError(e.code));
+    }
   }
 
   @override
   Future<void> sendPasswordReset(String email) async {
-    throw UnimplementedError('Password reset not yet implemented');
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on fb.FirebaseAuthException catch (e) {
+      throw AuthException(_mapFirebaseError(e.code));
+    }
   }
 
   @override
   Future<void> logout() async {
-    throw UnimplementedError('Logout not yet implemented');
+    await Future.wait([
+      _auth.signOut(),
+      _googleSignIn.signOut(),
+    ]);
   }
 
   @override
   Future<void> deleteAccount() async {
-    throw UnimplementedError('Delete account not yet implemented');
+    final user = _auth.currentUser;
+    if (user == null) throw AuthException('No user signed in');
+    try {
+      await user.delete();
+    } on fb.FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw AuthException(
+          'Please sign out and sign back in before deleting your account',
+        );
+      }
+      throw AuthException(_mapFirebaseError(e.code));
+    }
+  }
+
+  AuthUser? _mapUser(fb.User? user) {
+    if (user == null) return null;
+
+    String provider = 'email';
+    if (user.providerData.isNotEmpty) {
+      final providerId = user.providerData.first.providerId;
+      if (providerId == 'google.com') provider = 'google';
+      if (providerId == 'apple.com') provider = 'apple';
+    }
+
+    return AuthUser(
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoUrl: user.photoURL,
+      provider: provider,
+    );
+  }
+
+  String _mapFirebaseError(String code) {
+    return switch (code) {
+      'user-not-found' => 'No account found with this email',
+      'wrong-password' => 'Incorrect password',
+      'invalid-credential' => 'Invalid email or password',
+      'email-already-in-use' => 'An account already exists with this email',
+      'weak-password' => 'Password must be at least 6 characters',
+      'invalid-email' => 'Please enter a valid email address',
+      'user-disabled' => 'This account has been disabled',
+      'too-many-requests' => 'Too many attempts. Please try again later',
+      'network-request-failed' => 'Network error. Check your connection',
+      _ => 'Something went wrong. Please try again',
+    };
   }
 }

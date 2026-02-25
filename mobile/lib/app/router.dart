@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/providers/auth_provider.dart';
 import '../features/auth/presentation/auth_gate_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/signup_screen.dart';
@@ -12,14 +13,27 @@ import '../features/designs/presentation/design_browser_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/settings/presentation/account_screen.dart';
 
-class AppRouter {
-  AppRouter._();
+/// Creates a GoRouter that reacts to auth state changes.
+final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authStateProvider);
 
-  static final _rootNavigatorKey = GlobalKey<NavigatorState>();
-
-  static final GoRouter router = GoRouter(
-    navigatorKey: _rootNavigatorKey,
+  return GoRouter(
     initialLocation: '/',
+    redirect: (context, state) {
+      final isLoggedIn = authState.valueOrNull != null;
+      final isAuthRoute = state.matchedLocation == '/' ||
+          state.matchedLocation == '/login' ||
+          state.matchedLocation == '/signup' ||
+          state.matchedLocation == '/forgot-password';
+
+      // Not logged in and trying to access protected route -> auth gate
+      if (!isLoggedIn && !isAuthRoute) return '/';
+
+      // Logged in and on auth route -> home
+      if (isLoggedIn && isAuthRoute) return '/home';
+
+      return null; // No redirect
+    },
     routes: [
       // Auth routes
       GoRoute(
@@ -87,4 +101,4 @@ class AppRouter {
       ),
     ],
   );
-}
+});
