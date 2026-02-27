@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/cards_provider.dart';
+import '../../designs/domain/design_catalog.dart';
+import '../../designs/domain/design_model.dart';
 import '../domain/card_model.dart';
 
 /// Fetches a single card by its local DB id.
@@ -70,6 +72,32 @@ class _CardDetailView extends ConsumerWidget {
     }
   }
 
+  static Color _hexToColor(String hex) {
+    final h = hex.replaceFirst('#', '');
+    return Color(int.parse('FF$h', radix: 16));
+  }
+
+  Future<void> _pickDesign(BuildContext context, WidgetRef ref) async {
+    final designId = await context.push<String>(
+      '/designs',
+      extra: card.id.toString(),
+    );
+    if (designId != null && card.id != null) {
+      await ref.read(cardRepositoryProvider).updateCard(
+            card.copyWith(coverDesignId: designId),
+          );
+      ref.invalidate(_cardDetailProvider(card.id!));
+    }
+  }
+
+  Future<void> _removeDesign(WidgetRef ref) async {
+    if (card.id == null) return;
+    await ref.read(cardRepositoryProvider).updateCard(
+          card.copyWith(coverDesignId: null),
+        );
+    ref.invalidate(_cardDetailProvider(card.id!));
+  }
+
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -103,6 +131,9 @@ class _CardDetailView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final design = card.coverDesignId != null
+        ? DesignCatalog.findById(card.coverDesignId!)
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -120,26 +151,63 @@ class _CardDetailView extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // ── Card with optional design cover ────────────────────────────
             Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: BarcodeWidget(
-                  barcode: _resolveBarcode(card.barcodeType),
-                  data: card.barcodeValue,
-                  width: double.infinity,
-                  height: 180,
-                  color: theme.colorScheme.onSurface,
-                  backgroundColor: theme.colorScheme.surface,
-                  errorBuilder: (context, error) => Center(
-                    child: Text(
-                      'Cannot render barcode: $error',
-                      style: theme.textTheme.bodySmall,
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  if (design != null) _DesignHeader(design: design),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: BarcodeWidget(
+                      barcode: _resolveBarcode(card.barcodeType),
+                      data: card.barcodeValue,
+                      width: double.infinity,
+                      height: 180,
+                      color: theme.colorScheme.onSurface,
+                      backgroundColor: theme.colorScheme.surface,
+                      errorBuilder: (context, error) => Center(
+                        child: Text(
+                          'Cannot render barcode: $error',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // ── Design picker row ──────────────────────────────────────────
+            Row(
+              children: [
+                if (design != null) ...[
+                  _DesignChip(design: design),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () => _removeDesign(ref),
+                    child: const Text('Remove'),
+                  ),
+                ] else
+                  TextButton.icon(
+                    icon: const Icon(Icons.palette_outlined),
+                    label: const Text('Choose Design'),
+                    onPressed: () => _pickDesign(context, ref),
+                  ),
+                if (design != null) ...[
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => _pickDesign(context, ref),
+                    child: const Text('Change'),
+                  ),
+                ],
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Card info ──────────────────────────────────────────────────
             Text(card.merchantName, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 4),
             Text(
@@ -178,6 +246,66 @@ class _CardDetailView extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Coloured strip shown at the top of the barcode card.
+class _DesignHeader extends StatelessWidget {
+  final CoverDesign design;
+  const _DesignHeader({required this.design});
+
+  static Color _hexToColor(String hex) {
+    final h = hex.replaceFirst('#', '');
+    return Color(int.parse('FF$h', radix: 16));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = design.gradientColors.map(_hexToColor).toList();
+    return Container(
+      height: 72,
+      decoration: colors.length == 1
+          ? BoxDecoration(color: colors.first)
+          : BoxDecoration(
+              gradient: LinearGradient(
+                colors: colors,
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        design.name,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          shadows: [Shadow(blurRadius: 4, color: Colors.black38)],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small pill showing the design name + its first gradient color.
+class _DesignChip extends StatelessWidget {
+  final CoverDesign design;
+  const _DesignChip({required this.design});
+
+  static Color _hexToColor(String hex) {
+    final h = hex.replaceFirst('#', '');
+    return Color(int.parse('FF$h', radix: 16));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hexToColor(design.gradientColors.first);
+    return Chip(
+      avatar: CircleAvatar(backgroundColor: color),
+      label: Text(design.name, style: Theme.of(context).textTheme.labelSmall),
+      visualDensity: VisualDensity.compact,
     );
   }
 }

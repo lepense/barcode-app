@@ -79,11 +79,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // Designs
+      // Designs — state.extra is an optional cardId String when picking a design
       GoRoute(
         path: '/designs',
         name: 'designs',
-        builder: (context, state) => const DesignBrowserScreen(),
+        builder: (context, state) => DesignBrowserScreen(
+          pickForCardId: state.extra as String?,
+        ),
       ),
 
       // Settings

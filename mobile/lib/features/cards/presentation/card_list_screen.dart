@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/providers/cards_provider.dart';
+import '../../designs/domain/design_catalog.dart';
 import '../domain/card_model.dart';
 
 class CardListScreen extends ConsumerWidget {
@@ -112,23 +113,63 @@ class _CardTile extends StatelessWidget {
   final LoyaltyCard card;
   const _CardTile({required this.card});
 
+  static Color _hexToColor(String hex) {
+    final h = hex.replaceFirst('#', '');
+    return Color(int.parse('FF$h', radix: 16));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dateStr = DateFormat('MMM d, yyyy').format(card.updatedAt);
+    final design = card.coverDesignId != null
+        ? DesignCatalog.findById(card.coverDesignId!)
+        : null;
+    final colors = design?.gradientColors.map(_hexToColor).toList();
+
+    Widget avatar;
+    if (colors != null && colors.isNotEmpty) {
+      avatar = Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: colors.length == 1
+              ? null
+              : LinearGradient(
+                  colors: colors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+          color: colors.length == 1 ? colors.first : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          card.merchantName.isNotEmpty
+              ? card.merchantName[0].toUpperCase()
+              : '?',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+    } else {
+      avatar = CircleAvatar(
+        backgroundColor: theme.colorScheme.primaryContainer,
+        child: Text(
+          card.merchantName.isNotEmpty
+              ? card.merchantName[0].toUpperCase()
+              : '?',
+          style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
+        ),
+      );
+    }
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primaryContainer,
-          child: Text(
-            card.merchantName.isNotEmpty
-                ? card.merchantName[0].toUpperCase()
-                : '?',
-            style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
-          ),
-        ),
+        leading: avatar,
         title: Text(card.merchantName),
         subtitle: Text('${card.barcodeType} · $dateStr'),
         trailing: card.isSynced

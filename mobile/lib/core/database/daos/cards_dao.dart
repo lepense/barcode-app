@@ -29,4 +29,10 @@ class CardsDao extends DatabaseAccessor<AppDatabase> with _$CardsDaoMixin {
   Future<void> markSynced(int id) =>
       (update(cards)..where((c) => c.id.equals(id)))
           .write(const CardsCompanion(isSynced: Value(true)));
+
+  /// Sets both remoteId and isSynced=true in a single write.
+  Future<void> markSyncedWithRemoteId(int id, String remoteId) =>
+      (update(cards)..where((c) => c.id.equals(id))).write(
+        CardsCompanion(isSynced: const Value(true), remoteId: Value(remoteId)),
+      );
 }

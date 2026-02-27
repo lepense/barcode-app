@@ -30,7 +30,11 @@ class AppConstants {
     skuPackNeon,
   };
 
-  // Firebase Function base URL — replace <PROJECT_ID> with your actual project
-  static const String iapVerifyUrl =
-      'https://us-central1-<PROJECT_ID>.cloudfunctions.net/iapApi/verify';
+  // Firebase Function base URLs — replace <PROJECT_ID> with your actual project
+  static const String _fnBase =
+      'https://us-central1-<PROJECT_ID>.cloudfunctions.net';
+
+  static const String iapVerifyUrl = '$_fnBase/iapApi/verify';
+  static const String syncPushUrl  = '$_fnBase/syncApi/push';
+  static const String syncPullUrl  = '$_fnBase/syncApi/pull';
 }
