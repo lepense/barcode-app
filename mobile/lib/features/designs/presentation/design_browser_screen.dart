@@ -1,37 +1,266 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class DesignBrowserScreen extends StatelessWidget {
-  const DesignBrowserScreen({super.key});
+import '../../../core/providers/entitlements_provider.dart';
+import '../../../core/providers/iap_provider.dart';
+import '../domain/design_catalog.dart';
+import '../domain/design_model.dart';
+import '../../iap/domain/entitlements_model.dart';
+import 'paywall_sheet.dart';
+
+enum _DesignFilter { all, free, owned }
+
+class DesignBrowserScreen extends ConsumerStatefulWidget {
+  /// When non-null, selecting a design pops back with the design ID.
+  final String? pickForCardId;
+
+  const DesignBrowserScreen({super.key, this.pickForCardId});
+
+  @override
+  ConsumerState<DesignBrowserScreen> createState() =>
+      _DesignBrowserScreenState();
+}
+
+class _DesignBrowserScreenState extends ConsumerState<DesignBrowserScreen> {
+  _DesignFilter _filter = _DesignFilter.all;
+
+  List<CoverDesign> _filtered(EntitlementsModel ent) {
+    return switch (_filter) {
+      _DesignFilter.all => DesignCatalog.all,
+      _DesignFilter.free =>
+        DesignCatalog.all.where((d) => !d.isPremium).toList(),
+      _DesignFilter.owned =>
+        DesignCatalog.all.where((d) => ent.hasDesign(d)).toList(),
+    };
+  }
+
+  void _onDesignTap(CoverDesign design, EntitlementsModel ent) {
+    if (ent.hasDesign(design)) {
+      if (widget.pickForCardId != null) {
+        context.pop(design.id);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('"${design.name}" selected')),
+        );
+      }
+    } else {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => PaywallSheet(design: design),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final entitlementsAsync = ref.watch(entitlementsProvider);
+
+    // Pre-warm the IAP service in the background.
+    ref.watch(iapServiceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Designs')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      appBar: AppBar(
+        title: Text(
+          widget.pickForCardId != null ? 'Pick a Design' : 'Designs',
+        ),
+      ),
+      body: entitlementsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
+        data: (ent) => Column(
           children: [
-            Icon(
-              Icons.palette_outlined,
-              size: 64,
-              color: theme.colorScheme.outline,
+            _FilterBar(
+              current: _filter,
+              onChanged: (f) => setState(() => _filter = f),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Design templates coming soon',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.outline,
+            Expanded(
+              child: _DesignGrid(
+                designs: _filtered(ent),
+                entitlements: ent,
+                onTap: (d) => _onDesignTap(d, ent),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Browse and apply card cover designs',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.outline,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterBar extends StatelessWidget {
+  final _DesignFilter current;
+  final ValueChanged<_DesignFilter> onChanged;
+  const _FilterBar({required this.current, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: SegmentedButton<_DesignFilter>(
+        segments: const [
+          ButtonSegment(value: _DesignFilter.all, label: Text('All')),
+          ButtonSegment(value: _DesignFilter.free, label: Text('Free')),
+          ButtonSegment(value: _DesignFilter.owned, label: Text('My Pack')),
+        ],
+        selected: {current},
+        onSelectionChanged: (s) => onChanged(s.first),
+      ),
+    );
+  }
+}
+
+class _DesignGrid extends StatelessWidget {
+  final List<CoverDesign> designs;
+  final EntitlementsModel entitlements;
+  final ValueChanged<CoverDesign> onTap;
+
+  const _DesignGrid({
+    required this.designs,
+    required this.entitlements,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (designs.isEmpty) {
+      return Center(
+        child: Text(
+          'No designs here yet',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 3 / 2,
+      ),
+      itemCount: designs.length,
+      itemBuilder: (context, i) => _DesignTile(
+        design: designs[i],
+        isOwned: entitlements.hasDesign(designs[i]),
+        onTap: () => onTap(designs[i]),
+      ),
+    );
+  }
+}
+
+class _DesignTile extends StatelessWidget {
+  final CoverDesign design;
+  final bool isOwned;
+  final VoidCallback onTap;
+
+  const _DesignTile({
+    required this.design,
+    required this.isOwned,
+    required this.onTap,
+  });
+
+  List<Color> get _colors =>
+      design.gradientColors.map(_hexToColor).toList();
+
+  static Color _hexToColor(String hex) {
+    final h = hex.replaceFirst('#', '');
+    return Color(int.parse('FF$h', radix: 16));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final decoration = _colors.length == 1
+        ? BoxDecoration(
+            color: _colors.first,
+            borderRadius: BorderRadius.circular(12),
+          )
+        : BoxDecoration(
+            gradient: LinearGradient(
+              colors: _colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          );
+
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            DecoratedBox(decoration: decoration),
+            // Name label with gradient scrim
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.6),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Text(
+                  design.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
+            // Lock badge for locked premium designs
+            if (design.isPremium && !isOwned)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.45),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_outline,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+              ),
+            // Owned badge for unlocked premium
+            if (design.isPremium && isOwned)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.black45,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

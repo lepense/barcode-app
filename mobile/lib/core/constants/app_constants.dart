@@ -18,4 +18,19 @@ class AppConstants {
     'AZTEC',
     'DATA_MATRIX',
   ];
+
+  // IAP SKUs — must match App Store Connect / Google Play Console exactly
+  static const String skuProLifetime = 'pro_lifetime';
+  static const String skuPackLuxury = 'pack_luxury';
+  static const String skuPackNeon = 'pack_neon';
+
+  static const Set<String> allSkus = {
+    skuProLifetime,
+    skuPackLuxury,
+    skuPackNeon,
+  };
+
+  // Firebase Function base URL — replace <PROJECT_ID> with your actual project
+  static const String iapVerifyUrl =
+      'https://us-central1-<PROJECT_ID>.cloudfunctions.net/iapApi/verify';
 }

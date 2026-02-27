@@ -10,12 +10,13 @@ import 'tables/purchases_table.dart';
 import 'tables/entitlements_table.dart';
 import 'daos/cards_dao.dart';
 import 'daos/purchases_dao.dart';
+import 'daos/entitlements_dao.dart';
 
 part 'app_database.g.dart';
 
 @DriftDatabase(
   tables: [Cards, Purchases, Entitlements],
-  daos: [CardsDao, PurchasesDao],
+  daos: [CardsDao, PurchasesDao, EntitlementsDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
