@@ -51,15 +51,21 @@ class AppGlowLogo extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        // Transform.scale zooms into the centre of the image so the wallet
-        // graphic inside the logo appears 2× larger; ClipRRect clips overflow.
-        child: Transform.scale(
-          scale: 2.0,
+        // OverflowBox lays the image out at 2× the container size and
+        // Alignment.center pins the image centre to the container centre,
+        // so the wallet graphic is perfectly centred and 2× larger.
+        child: OverflowBox(
+          alignment: Alignment.center,
+          minWidth: size * 2.0,
+          maxWidth: size * 2.0,
+          minHeight: size * 2.0,
+          maxHeight: size * 2.0,
           child: Image.asset(
             'assets/images/logo.png',
-            width: size,
-            height: size,
+            width: size * 2.0,
+            height: size * 2.0,
             fit: BoxFit.cover,
+            alignment: Alignment.center,
           ),
         ),
       ),
