@@ -9,7 +9,7 @@ abstract class DesignCatalog {
   DesignCatalog._();
 
   static const List<CoverDesign> all = [
-    // ── Free ─────────────────────────────────────────────────────────────────
+    // ── Free — Gradients ─────────────────────────────────────────────────────
 
     CoverDesign(
       id: 'free_white',
@@ -28,6 +28,69 @@ abstract class DesignCatalog {
       name: 'Horizon',
       // Vivid sky blue → electric cyan — fresh and modern
       gradientColors: ['#1565C0', '#1E88E5', '#29B6F6', '#00E5FF'],
+    ),
+
+    // ── Free — Doodles ───────────────────────────────────────────────────────
+
+    CoverDesign(
+      id: 'doodle_polka',
+      name: 'Polka Dots',
+      gradientColors: ['#E91E63', '#F06292'],
+      patternType: DoodlePattern.polkaDots,
+    ),
+    CoverDesign(
+      id: 'doodle_stripes',
+      name: 'Stripes',
+      gradientColors: ['#1976D2', '#42A5F5'],
+      patternType: DoodlePattern.stripes,
+    ),
+    CoverDesign(
+      id: 'doodle_zigzag',
+      name: 'Zigzag',
+      gradientColors: ['#00897B', '#4DB6AC'],
+      patternType: DoodlePattern.zigzag,
+    ),
+    CoverDesign(
+      id: 'doodle_stars',
+      name: 'Stars',
+      gradientColors: ['#1A004D', '#4400A8', '#7B00E8'],
+      patternType: DoodlePattern.stars,
+    ),
+    CoverDesign(
+      id: 'doodle_hearts',
+      name: 'Hearts',
+      gradientColors: ['#880E4F', '#C2185B', '#F48FB1'],
+      patternType: DoodlePattern.hearts,
+    ),
+    CoverDesign(
+      id: 'doodle_crosshatch',
+      name: 'Crosshatch',
+      gradientColors: ['#37474F', '#546E7A', '#90A4AE'],
+      patternType: DoodlePattern.crosshatch,
+    ),
+    CoverDesign(
+      id: 'doodle_waves',
+      name: 'Waves',
+      gradientColors: ['#006064', '#00838F', '#26C6DA'],
+      patternType: DoodlePattern.waves,
+    ),
+    CoverDesign(
+      id: 'doodle_triangles',
+      name: 'Triangles',
+      gradientColors: ['#E65100', '#F57C00', '#FFB74D'],
+      patternType: DoodlePattern.triangles,
+    ),
+    CoverDesign(
+      id: 'doodle_flowers',
+      name: 'Flowers',
+      gradientColors: ['#6A1B9A', '#AB47BC', '#CE93D8'],
+      patternType: DoodlePattern.flowers,
+    ),
+    CoverDesign(
+      id: 'doodle_scribbles',
+      name: 'Scribbles',
+      gradientColors: ['#1B5E20', '#388E3C', '#81C784'],
+      patternType: DoodlePattern.scribbles,
     ),
 
     // ── Pack: Luxury ─────────────────────────────────────────────────────────

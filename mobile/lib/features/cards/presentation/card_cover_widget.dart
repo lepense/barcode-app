@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../designs/domain/design_catalog.dart';
+import '../../designs/domain/design_model.dart';
+import '../../designs/presentation/doodle_painter.dart';
 import '../domain/card_model.dart';
 
 // ── Fallback gradient palettes (used when no design is assigned) ──────────────
@@ -39,6 +41,12 @@ List<Color> resolveCardColors(LoyaltyCard card) {
   return _kFallbackPalettes[idx].map(_hex).toList();
 }
 
+/// Resolves the [DoodlePattern] for [card], if any.
+DoodlePattern? resolveCardPattern(LoyaltyCard card) {
+  if (card.coverDesignId == null) return null;
+  return DesignCatalog.findById(card.coverDesignId!)?.patternType;
+}
+
 // ── LoyaltyCardCover ──────────────────────────────────────────────────────────
 
 /// A full-width, credit-card proportioned widget (85.6 × 53.98 mm ratio)
@@ -61,6 +69,7 @@ class LoyaltyCardCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = resolveCardColors(card);
+    final pattern = resolveCardPattern(card);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -68,7 +77,7 @@ class LoyaltyCardCover extends StatelessWidget {
         padding: margin,
         child: AspectRatio(
           aspectRatio: 85.6 / 53.98, // ISO 7810 ID-1 standard credit card
-          child: _CardBody(card: card, colors: colors),
+          child: _CardBody(card: card, colors: colors, pattern: pattern),
         ),
       ),
     );
@@ -80,8 +89,13 @@ class LoyaltyCardCover extends StatelessWidget {
 class _CardBody extends StatelessWidget {
   final LoyaltyCard card;
   final List<Color> colors;
+  final DoodlePattern? pattern;
 
-  const _CardBody({required this.card, required this.colors});
+  const _CardBody({
+    required this.card,
+    required this.colors,
+    this.pattern,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +173,14 @@ class _CardBody extends StatelessWidget {
                 child: _Circle(size: 90, opacity: 0.05),
               ),
             ],
+
+            // ── Doodle pattern overlay ─────────────────────────────────────
+            if (pattern != null && !hasPhoto)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: DoodlePainter(pattern!),
+                ),
+              ),
 
             // ── Top row: sync icon + barcode type badge ────────────────────
             Positioned(

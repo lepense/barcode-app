@@ -18,6 +18,7 @@ import '../../cards/presentation/photo_position_screen.dart';
 import '../../iap/domain/entitlements_model.dart';
 import '../domain/design_catalog.dart';
 import '../domain/design_model.dart';
+import 'doodle_painter.dart';
 import 'paywall_sheet.dart';
 
 enum _DesignFilter { all, free, owned }
@@ -624,6 +625,14 @@ class _DesignTile extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             DecoratedBox(decoration: decoration),
+
+            // ── Doodle pattern overlay ───────────────────────────────────
+            if (design.patternType != null)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: DoodlePainter(design.patternType!),
+                ),
+              ),
 
             Positioned(
               right: -16,
