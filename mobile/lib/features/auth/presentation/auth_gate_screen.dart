@@ -23,8 +23,8 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
       // Router redirect will handle navigation
     } on AuthException catch (e) {
       setState(() => _error = e.message);
-    } catch (_) {
-      setState(() => _error = 'Something went wrong');
+    } catch (e) {
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -36,8 +36,8 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
       await ref.read(authRepositoryProvider).signInWithApple();
     } on AuthException catch (e) {
       setState(() => _error = e.message);
-    } catch (_) {
-      setState(() => _error = 'Something went wrong');
+    } catch (e) {
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
