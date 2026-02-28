@@ -72,11 +72,6 @@ class _CardDetailView extends ConsumerWidget {
     }
   }
 
-  static Color _hexToColor(String hex) {
-    final h = hex.replaceFirst('#', '');
-    return Color(int.parse('FF$h', radix: 16));
-  }
-
   Future<void> _pickDesign(BuildContext context, WidgetRef ref) async {
     final designId = await context.push<String>(
       '/designs',

@@ -4,7 +4,34 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../core/providers/cards_provider.dart';
+import '../../../core/services/barcode_lookup_service.dart';
 import '../domain/card_model.dart';
+
+// ── Internal scan result ─────────────────────────────────────────────────────
+
+class _ScanResult {
+  final String value;
+  final BarcodeFormat format;
+  const _ScanResult(this.value, this.format);
+}
+
+// ── BarcodeFormat → our type string ─────────────────────────────────────────
+
+String _mapFormat(BarcodeFormat format) => switch (format) {
+      BarcodeFormat.qrCode => 'QR',
+      BarcodeFormat.code128 => 'CODE128',
+      BarcodeFormat.code39 => 'CODE39',
+      BarcodeFormat.ean13 => 'EAN13',
+      BarcodeFormat.ean8 => 'EAN8',
+      BarcodeFormat.upcA => 'UPC_A',
+      BarcodeFormat.upcE => 'UPC_E',
+      BarcodeFormat.pdf417 => 'PDF417',
+      BarcodeFormat.aztec => 'AZTEC',
+      BarcodeFormat.dataMatrix => 'DATA_MATRIX',
+      _ => 'CODE128',
+    };
+
+// ── Screen ───────────────────────────────────────────────────────────────────
 
 class AddCardScreen extends ConsumerStatefulWidget {
   const AddCardScreen({super.key});
@@ -19,6 +46,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
   final _barcodeController = TextEditingController();
   String _selectedBarcodeType = 'QR';
   bool _isSaving = false;
+  bool _isLookingUp = false;
 
   static const _barcodeTypes = [
     'QR',
@@ -40,14 +68,43 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
     super.dispose();
   }
 
+  // ── Scanner ────────────────────────────────────────────────────────────────
+
   Future<void> _openScanner() async {
-    final result = await Navigator.of(context).push<String>(
+    final scan = await Navigator.of(context).push<_ScanResult>(
       MaterialPageRoute(builder: (_) => const _BarcodeScannerSheet()),
     );
-    if (result != null) {
-      _barcodeController.text = result;
+    if (scan == null || !mounted) return;
+
+    final type = _mapFormat(scan.format);
+
+    // Auto-fill barcode type and value immediately
+    setState(() {
+      _selectedBarcodeType = type;
+      _barcodeController.text = scan.value;
+      _isLookingUp = true;
+    });
+
+    // Try to resolve merchant name in the background
+    final name = await BarcodeLookupService.lookupName(scan.value, type);
+    if (!mounted) return;
+
+    setState(() => _isLookingUp = false);
+
+    if (name != null && name.isNotEmpty) {
+      _merchantController.text = name;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('İsim otomatik tespit edildi: $name'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
+    // If name was not found: merchant field stays empty → user types it
   }
+
+  // ── Save ───────────────────────────────────────────────────────────────────
 
   Future<void> _saveCard() async {
     if (!_formKey.currentState!.validate()) return;
@@ -64,12 +121,11 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
       );
 
       await ref.read(cardRepositoryProvider).addCard(card);
-
       if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save card: $e')),
+          SnackBar(content: Text('Kart kaydedilemedi: $e')),
         );
       }
     } finally {
@@ -77,10 +133,12 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
     }
   }
 
+  // ── UI ─────────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Card')),
+      appBar: AppBar(title: const Text('Kart Ekle')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -89,21 +147,37 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // ── Merchant name (auto-filled after scan) ──────────────────
                 TextFormField(
                   controller: _merchantController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Merchant Name',
-                    prefixIcon: Icon(Icons.store),
+                  decoration: InputDecoration(
+                    labelText: 'Mağaza / Kart Adı',
+                    prefixIcon: const Icon(Icons.store),
+                    suffixIcon: _isLookingUp
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                    helperText: _isLookingUp ? 'İsim aranıyor…' : null,
                   ),
                   validator: (v) =>
-                      v != null && v.isNotEmpty ? null : 'Enter merchant name',
+                      v != null && v.isNotEmpty ? null : 'Mağaza adı girin',
                 ),
+
                 const SizedBox(height: 16),
+
+                // ── Barcode type (auto-set from scan format) ────────────────
                 DropdownButtonFormField<String>(
                   value: _selectedBarcodeType,
                   decoration: const InputDecoration(
-                    labelText: 'Barcode Type',
+                    labelText: 'Barkod Türü',
                     prefixIcon: Icon(Icons.qr_code),
                   ),
                   items: _barcodeTypes
@@ -113,30 +187,56 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                     if (v != null) setState(() => _selectedBarcodeType = v);
                   },
                 ),
+
                 const SizedBox(height: 16),
+
+                // ── Barcode value + camera button ───────────────────────────
                 TextFormField(
                   controller: _barcodeController,
                   decoration: InputDecoration(
-                    labelText: 'Barcode Value',
+                    labelText: 'Barkod Değeri',
                     prefixIcon: const Icon(Icons.dialpad),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.camera_alt_outlined),
-                      tooltip: 'Scan barcode',
-                      onPressed: _openScanner,
+                      tooltip: 'Barkodu tara',
+                      onPressed: _isLookingUp ? null : _openScanner,
                     ),
                   ),
                   validator: (v) =>
-                      v != null && v.isNotEmpty ? null : 'Enter barcode value',
+                      v != null && v.isNotEmpty ? null : 'Barkod değeri girin',
                 ),
+
+                const SizedBox(height: 12),
+
+                // ── Hint about auto-scan ────────────────────────────────────
+                Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.outline),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Kamerayı açıp barkodu tarayınca tür ve isim otomatik dolar',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+
                 const SizedBox(height: 32),
-                FilledButton(
-                  onPressed: _isSaving ? null : _saveCard,
-                  child: _isSaving
+
+                FilledButton.icon(
+                  onPressed: (_isSaving || _isLookingUp) ? null : _saveCard,
+                  icon: _isSaving
                       ? const SizedBox.square(
-                          dimension: 20,
+                          dimension: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Save Card'),
+                      : const Icon(Icons.save_outlined),
+                  label: const Text('Kartı Kaydet'),
                 ),
               ],
             ),
@@ -147,7 +247,8 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
   }
 }
 
-/// Full-screen barcode scanner.
+// ── Full-screen barcode scanner ──────────────────────────────────────────────
+
 class _BarcodeScannerSheet extends StatefulWidget {
   const _BarcodeScannerSheet();
 
@@ -169,20 +270,28 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
     if (_detected) return;
     final barcode = capture.barcodes.firstOrNull;
     final value = barcode?.rawValue;
-    if (value != null && value.isNotEmpty) {
-      _detected = true;
-      Navigator.of(context).pop(value);
+    final format = barcode?.format;
+    // Ignore unknown / empty scans
+    if (value == null ||
+        value.isEmpty ||
+        format == null ||
+        format == BarcodeFormat.unknown) {
+      return;
     }
+
+    _detected = true;
+    Navigator.of(context).pop(_ScanResult(value, format));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan Barcode'),
+        title: const Text('Barkodu Tara'),
         actions: [
           IconButton(
             icon: const Icon(Icons.flash_on),
+            tooltip: 'Flaş',
             onPressed: () => _controller.toggleTorch(),
           ),
         ],
@@ -193,6 +302,8 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
             controller: _controller,
             onDetect: _onDetect,
           ),
+
+          // Scanning frame overlay
           Center(
             child: Container(
               width: 260,
@@ -206,16 +317,27 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
               ),
             ),
           ),
+
+          // Corner accents
+          Center(
+            child: SizedBox(
+              width: 260,
+              height: 260,
+              child: CustomPaint(painter: _CornerPainter(context)),
+            ),
+          ),
+
+          // Instruction text
           Positioned(
-            bottom: 32,
+            bottom: 40,
             left: 0,
             right: 0,
             child: Text(
-              'Align the barcode inside the frame',
+              'Barkodu çerçeve içine hizalayın\nTür ve isim otomatik algılanacak',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
-                    shadows: const [Shadow(blurRadius: 4)],
+                    shadows: const [Shadow(blurRadius: 6)],
                   ),
             ),
           ),
@@ -223,4 +345,38 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
       ),
     );
   }
+}
+
+// ── Corner accent painter ────────────────────────────────────────────────────
+
+class _CornerPainter extends CustomPainter {
+  final BuildContext context;
+  _CornerPainter(this.context);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Theme.of(context).colorScheme.primary
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    const len = 24.0;
+    const r = 12.0;
+
+    void corner(double x, double y, double dx, double dy) {
+      canvas.drawLine(
+          Offset(x + dx * r, y), Offset(x + dx * (r + len), y), paint);
+      canvas.drawLine(
+          Offset(x, y + dy * r), Offset(x, y + dy * (r + len)), paint);
+    }
+
+    corner(0, 0, 1, 1);
+    corner(size.width, 0, -1, 1);
+    corner(0, size.height, 1, -1);
+    corner(size.width, size.height, -1, -1);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

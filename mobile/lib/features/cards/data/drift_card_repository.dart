@@ -2,7 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../core/database/tables/cards_table.dart';
 import '../../../core/services/encryption_service.dart';
 import '../domain/card_model.dart';
 import '../domain/card_repository.dart';
