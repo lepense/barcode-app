@@ -38,6 +38,7 @@ export default function AdminLoginPage() {
             <input
               id="email"
               type="email"
+              aria-label="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -51,6 +52,7 @@ export default function AdminLoginPage() {
             <input
               id="password"
               type="password"
+              aria-label="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

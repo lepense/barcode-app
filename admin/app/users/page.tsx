@@ -29,6 +29,7 @@ export default function UsersPage() {
       <div className="mb-4">
         <input
           type="text"
+          aria-label="Search users by email or user ID"
           placeholder="Search by email or user ID..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
