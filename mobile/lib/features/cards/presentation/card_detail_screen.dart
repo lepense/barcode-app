@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/providers/cards_provider.dart';
 import '../../designs/domain/design_catalog.dart';
@@ -84,6 +89,130 @@ class _CardDetailView extends ConsumerWidget {
     ref.invalidate(_cardDetailProvider(card.id!));
   }
 
+  // ── Custom photo ──────────────────────────────────────────────────────────
+
+  Future<void> _pickPhoto(
+    BuildContext context,
+    WidgetRef ref,
+    ImageSource source,
+  ) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      imageQuality: 85,
+      maxWidth: 1200,
+    );
+    if (picked == null || !context.mounted) return;
+
+    // Copy the picked image to the app's documents directory so the card
+    // continues to display even if the original gallery photo is deleted.
+    final docsDir = await getApplicationDocumentsDirectory();
+    final coversDir = Directory(p.join(docsDir.path, 'card_covers'));
+    if (!coversDir.existsSync()) coversDir.createSync(recursive: true);
+
+    final ext = p.extension(picked.path).isEmpty ? '.jpg' : p.extension(picked.path);
+    final fileName = 'card_${card.id ?? 'new'}_${DateTime.now().millisecondsSinceEpoch}$ext';
+    final destPath = p.join(coversDir.path, fileName);
+
+    await File(picked.path).copy(destPath);
+
+    if (!context.mounted) return;
+    await ref.read(cardRepositoryProvider).updateCard(
+          card.copyWith(
+            customCoverImagePath: destPath,
+            coverDesignId: null, // clear any gradient design
+          ),
+        );
+    ref.invalidate(_cardDetailProvider(card.id!));
+  }
+
+  Future<void> _removePhoto(WidgetRef ref) async {
+    if (card.id == null) return;
+    // Delete the file from disk if it lives in our covers dir
+    if (card.customCoverImagePath != null) {
+      final f = File(card.customCoverImagePath!);
+      if (f.existsSync()) f.deleteSync();
+    }
+    await ref.read(cardRepositoryProvider).updateCard(
+          card.copyWith(customCoverImagePath: null),
+        );
+    ref.invalidate(_cardDetailProvider(card.id!));
+  }
+
+  void _showCoverSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Galeriden seç'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickPhoto(context, ref, ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Fotoğraf çek'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickPhoto(context, ref, ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('Hazır tema seç'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickDesign(context, ref);
+              },
+            ),
+            if (card.customCoverImagePath != null ||
+                card.coverDesignId != null) ...[
+              const Divider(height: 1),
+              ListTile(
+                leading: Icon(Icons.delete_outline,
+                    color: Theme.of(ctx).colorScheme.error),
+                title: Text(
+                  card.customCoverImagePath != null
+                      ? 'Fotoğrafı kaldır'
+                      : 'Temayı kaldır',
+                  style:
+                      TextStyle(color: Theme.of(ctx).colorScheme.error),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  if (card.customCoverImagePath != null) {
+                    _removePhoto(ref);
+                  } else {
+                    _removeDesign(ref);
+                  }
+                },
+              ),
+            ],
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -142,29 +271,45 @@ class _CardDetailView extends ConsumerWidget {
               margin: const EdgeInsets.fromLTRB(20, 16, 20, 4),
             ),
 
-            // ── Design picker ──────────────────────────────────────────────
+            // ── Cover customization row ────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  if (design != null) ...[
+                  // Active cover label
+                  if (card.customCoverImagePath != null) ...[
+                    const Icon(Icons.image_outlined, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Özel fotoğraf',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ] else if (design != null) ...[
                     _DesignChip(design: design),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () => _removeDesign(ref),
-                      child: const Text('Remove'),
-                    ),
                     const Spacer(),
-                    TextButton(
-                      onPressed: () => _pickDesign(context, ref),
-                      child: const Text('Change'),
-                    ),
                   ] else
-                    TextButton.icon(
-                      icon: const Icon(Icons.palette_outlined),
-                      label: const Text('Choose Design'),
-                      onPressed: () => _pickDesign(context, ref),
+                    Expanded(
+                      child: Text(
+                        'Kapak yok',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                      ),
                     ),
+                  // Action button — always visible
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Kapağı düzenle'),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                    ),
+                    onPressed: () => _showCoverSheet(context, ref),
+                  ),
                 ],
               ),
             ),

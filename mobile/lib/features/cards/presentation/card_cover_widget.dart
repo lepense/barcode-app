@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../designs/domain/design_catalog.dart';
@@ -83,17 +85,26 @@ class _CardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasPhoto = card.customCoverImagePath != null &&
+        card.customCoverImagePath!.isNotEmpty;
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        // Show gradient only when there is no custom photo
+        gradient: hasPhoto
+            ? null
+            : LinearGradient(
+                colors: colors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        color: hasPhoto ? Colors.black : null,
         boxShadow: [
           BoxShadow(
-            color: colors.first.withOpacity(0.5),
+            color: hasPhoto
+                ? Colors.black.withOpacity(0.4)
+                : colors.first.withOpacity(0.5),
             blurRadius: 22,
             offset: const Offset(0, 10),
             spreadRadius: -4,
@@ -109,22 +120,36 @@ class _CardBody extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            // ── Decorative background circles ──────────────────────────────
-            Positioned(
-              right: -30,
-              top: -30,
-              child: _Circle(size: 160, opacity: 0.08),
-            ),
-            Positioned(
-              right: 24,
-              bottom: -44,
-              child: _Circle(size: 120, opacity: 0.06),
-            ),
-            Positioned(
-              left: -18,
-              bottom: -18,
-              child: _Circle(size: 90, opacity: 0.05),
-            ),
+            // ── Custom photo background (takes priority over gradient) ─────
+            if (card.customCoverImagePath != null &&
+                card.customCoverImagePath!.isNotEmpty)
+              Positioned.fill(
+                child: Image.file(
+                  File(card.customCoverImagePath!),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+
+            // ── Decorative background circles (gradient mode only) ─────────
+            if (card.customCoverImagePath == null ||
+                card.customCoverImagePath!.isEmpty) ...[
+              Positioned(
+                right: -30,
+                top: -30,
+                child: _Circle(size: 160, opacity: 0.08),
+              ),
+              Positioned(
+                right: 24,
+                bottom: -44,
+                child: _Circle(size: 120, opacity: 0.06),
+              ),
+              Positioned(
+                left: -18,
+                bottom: -18,
+                child: _Circle(size: 90, opacity: 0.05),
+              ),
+            ],
 
             // ── Top row: sync icon + barcode type badge ────────────────────
             Positioned(

@@ -53,6 +53,9 @@ dependencies:
   # HTTP for Cloud Function calls
   http: ^1.2.2
 
+  # Image picker (gallery + camera) for custom card covers
+  image_picker: ^1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
