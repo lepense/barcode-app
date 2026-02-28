@@ -9,6 +9,12 @@ class Cards extends Table {
   TextColumn get coverDesignId => text().nullable()();
   /// Absolute path to a user-supplied cover image stored in the app docs dir.
   TextColumn get customCoverImagePath => text().nullable()();
+
+  /// Photo position/zoom — null means default (centred, scale 1.0).
+  RealColumn get coverImageOffsetX => real().nullable()();
+  RealColumn get coverImageOffsetY => real().nullable()();
+  RealColumn get coverImageScale   => real().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();

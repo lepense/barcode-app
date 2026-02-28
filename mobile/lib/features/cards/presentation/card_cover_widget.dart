@@ -124,10 +124,19 @@ class _CardBody extends StatelessWidget {
             if (card.customCoverImagePath != null &&
                 card.customCoverImagePath!.isNotEmpty)
               Positioned.fill(
-                child: Image.file(
-                  File(card.customCoverImagePath!),
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                child: Transform(
+                  transform: Matrix4.identity()
+                    ..translate(
+                      card.coverImageOffsetX ?? 0.0,
+                      card.coverImageOffsetY ?? 0.0,
+                    )
+                    ..scale(card.coverImageScale ?? 1.0),
+                  alignment: Alignment.center,
+                  child: Image.file(
+                    File(card.customCoverImagePath!),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
                 ),
               ),
 

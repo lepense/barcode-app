@@ -11,6 +11,15 @@ class LoyaltyCard {
   /// When set, this takes priority over [coverDesignId] in the card cover UI.
   final String? customCoverImagePath;
 
+  /// Photo pan offset (in the card's local coordinate space, density-independent).
+  /// null = default centred position (0, 0).
+  final double? coverImageOffsetX;
+  final double? coverImageOffsetY;
+
+  /// Photo zoom scale applied on top of BoxFit.cover.
+  /// null = default scale (1.0).
+  final double? coverImageScale;
+
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isSynced;
@@ -23,6 +32,9 @@ class LoyaltyCard {
     required this.barcodeValue,
     this.coverDesignId,
     this.customCoverImagePath,
+    this.coverImageOffsetX,
+    this.coverImageOffsetY,
+    this.coverImageScale,
     required this.createdAt,
     required this.updatedAt,
     this.isSynced = false,
@@ -43,6 +55,9 @@ class LoyaltyCard {
     String? barcodeValue,
     Object? coverDesignId = _sentinel,
     Object? customCoverImagePath = _sentinel,
+    Object? coverImageOffsetX = _sentinel,
+    Object? coverImageOffsetY = _sentinel,
+    Object? coverImageScale = _sentinel,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isSynced,
@@ -61,6 +76,15 @@ class LoyaltyCard {
       customCoverImagePath: identical(customCoverImagePath, _sentinel)
           ? this.customCoverImagePath
           : customCoverImagePath as String?,
+      coverImageOffsetX: identical(coverImageOffsetX, _sentinel)
+          ? this.coverImageOffsetX
+          : coverImageOffsetX as double?,
+      coverImageOffsetY: identical(coverImageOffsetY, _sentinel)
+          ? this.coverImageOffsetY
+          : coverImageOffsetY as double?,
+      coverImageScale: identical(coverImageScale, _sentinel)
+          ? this.coverImageScale
+          : coverImageScale as double?,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isSynced: isSynced ?? this.isSynced,

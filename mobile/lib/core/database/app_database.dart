@@ -24,7 +24,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -36,6 +36,12 @@ class AppDatabase extends _$AppDatabase {
         // v1 → v2: custom card cover photo support
         if (from < 2) {
           await m.addColumn(cards, cards.customCoverImagePath);
+        }
+        // v2 → v3: photo pan/zoom positioning
+        if (from < 3) {
+          await m.addColumn(cards, cards.coverImageOffsetX);
+          await m.addColumn(cards, cards.coverImageOffsetY);
+          await m.addColumn(cards, cards.coverImageScale);
         }
       },
     );
