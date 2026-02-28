@@ -174,11 +174,15 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                 const SizedBox(height: 16),
 
                 // ── Barcode type (auto-set from scan format) ────────────────
+                // key: ValueKey forces widget recreation when type changes
+                // so the dropdown always reflects the auto-detected format.
                 DropdownButtonFormField<String>(
+                  key: ValueKey(_selectedBarcodeType),
                   value: _selectedBarcodeType,
                   decoration: const InputDecoration(
                     labelText: 'Barkod Türü',
                     prefixIcon: Icon(Icons.qr_code),
+                    helperText: 'Tarama yapılınca otomatik seçilir',
                   ),
                   items: _barcodeTypes
                       .map((t) => DropdownMenuItem(value: t, child: Text(t)))
