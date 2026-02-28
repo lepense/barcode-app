@@ -30,9 +30,9 @@ class AppConstants {
     skuPackNeon,
   };
 
-  // Firebase Function base URLs — replace <PROJECT_ID> with your actual project
+  // Firebase Function base URLs
   static const String _fnBase =
-      'https://us-central1-<PROJECT_ID>.cloudfunctions.net';
+      'https://us-central1-barcode-app-5919e.cloudfunctions.net';
 
   static const String iapVerifyUrl = '$_fnBase/iapApi/verify';
   static const String syncPushUrl  = '$_fnBase/syncApi/push';

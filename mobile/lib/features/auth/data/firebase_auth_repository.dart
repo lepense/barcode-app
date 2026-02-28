@@ -6,13 +6,9 @@ import '../domain/auth_repository.dart';
 /// Firebase implementation of [AuthRepository].
 class FirebaseAuthRepository implements AuthRepository {
   final fb.FirebaseAuth _auth;
-  final GoogleSignIn _googleSignIn;
 
-  FirebaseAuthRepository({
-    fb.FirebaseAuth? auth,
-    GoogleSignIn? googleSignIn,
-  })  : _auth = auth ?? fb.FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+  FirebaseAuthRepository({fb.FirebaseAuth? auth})
+      : _auth = auth ?? fb.FirebaseAuth.instance;
 
   @override
   Stream<AuthUser?> get authStateChanges {
@@ -24,14 +20,19 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<AuthUser> signInWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) {
-      throw AuthException('Google sign-in cancelled');
+    late GoogleSignInAccount googleUser;
+    try {
+      googleUser = await GoogleSignIn.instance.authenticate();
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        throw AuthException('Google sign-in cancelled');
+      }
+      throw AuthException('Google sign-in failed: ${e.description}');
     }
 
-    final googleAuth = await googleUser.authentication;
+    // v7: authentication is a sync getter, only idToken (no accessToken)
+    final googleAuth = googleUser.authentication;
     final credential = fb.GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
 
@@ -98,7 +99,7 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> logout() async {
     await Future.wait([
       _auth.signOut(),
-      _googleSignIn.signOut(),
+      GoogleSignIn.instance.signOut(),
     ]);
   }
 
