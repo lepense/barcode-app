@@ -10,66 +10,78 @@ abstract class DesignCatalog {
 
   static const List<CoverDesign> all = [
     // ── Free ─────────────────────────────────────────────────────────────────
+
     CoverDesign(
       id: 'free_white',
-      name: 'Clean White',
-      gradientColors: ['#F8F9FA', '#E9ECEF'],
+      name: 'Arctic Frost',
+      // Crisp ice-white → vivid sapphire — clean and premium
+      gradientColors: ['#F0F8FF', '#BBDEFB', '#64B5F6', '#1565C0'],
     ),
     CoverDesign(
       id: 'free_midnight',
-      name: 'Midnight',
-      gradientColors: ['#1A1A2E', '#16213E'],
+      name: 'Deep Space',
+      // True dark navy/space purple — great for AMOLED screens
+      gradientColors: ['#0A0A12', '#1A1040', '#2D1B69', '#1A0040'],
     ),
     CoverDesign(
       id: 'free_ocean',
-      name: 'Ocean Blue',
-      gradientColors: ['#2193B0', '#6DD5FA'],
+      name: 'Horizon',
+      // Vivid sky blue → electric cyan — fresh and modern
+      gradientColors: ['#1565C0', '#1E88E5', '#29B6F6', '#00E5FF'],
     ),
 
     // ── Pack: Luxury ─────────────────────────────────────────────────────────
+
     CoverDesign(
       id: 'luxury_gold',
-      name: 'Gold Rush',
+      name: '24K Gold',
       isPremium: true,
       packId: IapSkus.packLuxury,
-      gradientColors: ['#F7971E', '#FFD200'],
+      // Rich amber → liquid gold → back to dark amber (metallic shimmer)
+      gradientColors: ['#6B3E00', '#B8870B', '#F5C518', '#E8AE00', '#7B4A00'],
     ),
     CoverDesign(
       id: 'luxury_rose',
       name: 'Rose Gold',
       isPremium: true,
       packId: IapSkus.packLuxury,
-      gradientColors: ['#B76E79', '#E8B4B8', '#F7CAC9'],
+      // Deep wine → rose → blush → champagne (luxury feminine gradient)
+      gradientColors: ['#6D1F35', '#B5566C', '#E8A0B0', '#F5C8D2', '#D4899A'],
     ),
     CoverDesign(
       id: 'luxury_diamond',
-      name: 'Diamond',
+      name: 'Platinum',
       isPremium: true,
       packId: IapSkus.packLuxury,
-      gradientColors: ['#C9D6FF', '#E2E2E2'],
+      // Dark steel → warm silver → near-white → silver (metallic platinum)
+      gradientColors: ['#4A5568', '#718096', '#A0AEC0', '#EDF2F7', '#B0BEC5'],
     ),
 
     // ── Pack: Neon ────────────────────────────────────────────────────────────
+
     CoverDesign(
       id: 'neon_purple',
-      name: 'Neon Purple',
+      name: 'Ultraviolet',
       isPremium: true,
       packId: IapSkus.packNeon,
-      gradientColors: ['#7B2FF7', '#F107A3'],
+      // Deep void → electric violet → hot magenta (UV rave gradient)
+      gradientColors: ['#1A004D', '#4400A8', '#7B00E8', '#CC44FF', '#FF00C8'],
     ),
     CoverDesign(
       id: 'neon_electric',
-      name: 'Electric Blue',
+      name: 'Reactor',
       isPremium: true,
       packId: IapSkus.packNeon,
-      gradientColors: ['#00C6FF', '#0072FF'],
+      // Near-black navy → cobalt → electric cyan (plasma energy)
+      gradientColors: ['#000A1A', '#003A70', '#0070B8', '#00B4F0'],
     ),
     CoverDesign(
       id: 'neon_cyber',
-      name: 'Cyber Green',
+      name: 'Matrix',
       isPremium: true,
       packId: IapSkus.packNeon,
-      gradientColors: ['#39FF14', '#00F5FF'],
+      // Pure black → deep forest → acid green (cyberpunk terminal)
+      gradientColors: ['#030303', '#001A00', '#004400', '#00AA00', '#39FF14'],
     ),
   ];
 

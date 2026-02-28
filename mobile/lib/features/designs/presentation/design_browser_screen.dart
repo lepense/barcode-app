@@ -140,9 +140,10 @@ class _DesignGrid extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 3 / 2,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        // Standard credit-card ratio so previews match the real card shape
+        childAspectRatio: 85.6 / 53.98,
       ),
       itemCount: designs.length,
       itemBuilder: (context, i) => _DesignTile(
@@ -178,7 +179,7 @@ class _DesignTile extends StatelessWidget {
     final decoration = _colors.length == 1
         ? BoxDecoration(
             color: _colors.first,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           )
         : BoxDecoration(
             gradient: LinearGradient(
@@ -186,17 +187,71 @@ class _DesignTile extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           );
 
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Gradient background
             DecoratedBox(decoration: decoration),
+
+            // Decorative circles (mimics LoyaltyCardCover)
+            Positioned(
+              right: -16,
+              top: -16,
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.08),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 12,
+              bottom: -22,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06),
+                ),
+              ),
+            ),
+
+            // Mini EMV chip
+            Positioned(
+              left: 10,
+              top: 0,
+              bottom: 28,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  width: 22,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFD4A843), Color(0xFFF5C842), Color(0xFFD4A843)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(
+                      color: const Color(0xFFBF9000).withOpacity(0.7),
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
             // Name label with gradient scrim
             Positioned(
               bottom: 0,
@@ -213,18 +268,20 @@ class _DesignTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 child: Text(
                   design.name,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
                   ),
                 ),
               ),
             ),
+
             // Lock badge for locked premium designs
             if (design.isPremium && !isOwned)
               Positioned(
@@ -233,16 +290,17 @@ class _DesignTile extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.45),
+                    color: Colors.black.withOpacity(0.5),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.lock_outline,
                     color: Colors.white,
-                    size: 14,
+                    size: 13,
                   ),
                 ),
               ),
+
             // Owned badge for unlocked premium
             if (design.isPremium && isOwned)
               Positioned(
@@ -257,7 +315,7 @@ class _DesignTile extends StatelessWidget {
                   child: const Icon(
                     Icons.check_circle_outline,
                     color: Colors.white,
-                    size: 14,
+                    size: 13,
                   ),
                 ),
               ),
