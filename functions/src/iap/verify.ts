@@ -45,7 +45,8 @@ app.use(requireAuth);
 app.post("/verify", async (req, res) => {
   try {
     const uid = (req as any).user.uid;
-    const { sku, platform, transactionId, receiptData } = req.body;
+    // receiptData is accepted but full server-side verification is a TODO
+    const { sku, platform, transactionId } = req.body;
 
     if (!sku || !platform || !transactionId) {
       res.status(400).json({ error: "Missing required fields: sku, platform, transactionId" });
