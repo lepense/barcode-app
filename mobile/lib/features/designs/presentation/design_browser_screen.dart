@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +8,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../core/database/app_database.dart';
 import '../../../core/providers/cards_provider.dart';
+import '../../../core/providers/custom_photo_templates_provider.dart';
+import '../../../core/providers/database_provider.dart';
 import '../../../core/providers/entitlements_provider.dart';
 import '../../../core/providers/iap_provider.dart';
 import '../../cards/presentation/photo_position_screen.dart';
@@ -19,8 +23,8 @@ import 'paywall_sheet.dart';
 enum _DesignFilter { all, free, owned }
 
 class DesignBrowserScreen extends ConsumerStatefulWidget {
-  /// When non-null, selecting a design/photo pops back with the design ID
-  /// or applies the photo directly to this card.
+  /// When non-null, selecting a design/template applies it to this card ID
+  /// and pops back.  When null, the screen is in browse-only mode.
   final String? pickForCardId;
 
   const DesignBrowserScreen({super.key, this.pickForCardId});
@@ -44,13 +48,15 @@ class _DesignBrowserScreenState extends ConsumerState<DesignBrowserScreen> {
     };
   }
 
+  // ── Design tile tap ──────────────────────────────────────────────────────
+
   void _onDesignTap(CoverDesign design, EntitlementsModel ent) {
     if (ent.hasDesign(design)) {
       if (widget.pickForCardId != null) {
         context.pop(design.id);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('"${design.name}" selected')),
+          SnackBar(content: Text('"${design.name}" seçildi')),
         );
       }
     } else {
@@ -62,7 +68,7 @@ class _DesignBrowserScreenState extends ConsumerState<DesignBrowserScreen> {
     }
   }
 
-  // ── Photo picker flow ────────────────────────────────────────────────────
+  // ── Photo picker → save as template ──────────────────────────────────────
 
   Future<void> _pickAndPositionPhoto(ImageSource source) async {
     setState(() => _isPickingPhoto = true);
@@ -75,19 +81,22 @@ class _DesignBrowserScreenState extends ConsumerState<DesignBrowserScreen> {
       );
       if (picked == null || !mounted) return;
 
-      // Copy to app documents so it outlives the gallery selection
+      // Copy to app documents so it outlives the gallery selection.
       final docsDir = await getApplicationDocumentsDirectory();
       final coversDir = Directory(p.join(docsDir.path, 'card_covers'));
       if (!coversDir.existsSync()) coversDir.createSync(recursive: true);
 
-      final ext = p.extension(picked.path).isEmpty ? '.jpg' : p.extension(picked.path);
-      final fileName = 'card_custom_${DateTime.now().millisecondsSinceEpoch}$ext';
+      final ext = p.extension(picked.path).isEmpty
+          ? '.jpg'
+          : p.extension(picked.path);
+      final fileName =
+          'photo_tmpl_${DateTime.now().millisecondsSinceEpoch}$ext';
       final destPath = p.join(coversDir.path, fileName);
       await File(picked.path).copy(destPath);
 
       if (!mounted) return;
 
-      // Open positioning screen
+      // Let user position / zoom the photo inside a card-shaped frame.
       final result = await Navigator.push<PhotoPositionResult>(
         context,
         MaterialPageRoute(
@@ -97,37 +106,90 @@ class _DesignBrowserScreenState extends ConsumerState<DesignBrowserScreen> {
 
       if (result == null || !mounted) return;
 
-      // If opened as a picker for a specific card, apply immediately
-      if (widget.pickForCardId != null) {
-        final cardId = int.tryParse(widget.pickForCardId!);
-        if (cardId != null) {
-          final repo = ref.read(cardRepositoryProvider);
-          final card = await repo.getCardById(cardId);
-          await repo.updateCard(
-            card.copyWith(
-              customCoverImagePath: result.imagePath,
-              coverDesignId: null,
-              coverImageOffsetX: result.offsetX,
-              coverImageOffsetY: result.offsetY,
-              coverImageScale: result.scale,
-            ),
-          );
-          if (mounted) context.pop();
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Fotoğrafı kart detayından karta uygula'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+      // Save as a reusable template in the DB.
+      final db = ref.read(databaseProvider);
+      await db.customPhotoTemplatesDao.insertTemplate(
+        CustomPhotoTemplatesCompanion(
+          imagePath: Value(result.imagePath),
+          offsetX: Value(result.offsetX),
+          offsetY: Value(result.offsetY),
+          scale: Value(result.scale),
+          createdAt: Value(DateTime.now().millisecondsSinceEpoch),
+        ),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Fotoğraf şablonu kaydedildi ✓'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isPickingPhoto = false);
     }
   }
+
+  // ── Apply a photo template to the card ────────────────────────────────────
+
+  Future<void> _applyTemplate(CustomPhotoTemplate tmpl) async {
+    if (widget.pickForCardId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Uygulamak için kart detayından tasarım seç'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final cardId = int.tryParse(widget.pickForCardId!);
+    if (cardId == null) return;
+
+    final repo = ref.read(cardRepositoryProvider);
+    final card = await repo.getCardById(cardId);
+    await repo.updateCard(
+      card.copyWith(
+        customCoverImagePath: tmpl.imagePath,
+        coverDesignId: null,
+        coverImageOffsetX: tmpl.offsetX,
+        coverImageOffsetY: tmpl.offsetY,
+        coverImageScale: tmpl.scale,
+      ),
+    );
+    if (mounted) context.pop();
+  }
+
+  // ── Delete a template with confirmation ───────────────────────────────────
+
+  Future<void> _deleteTemplate(CustomPhotoTemplate tmpl) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Şablonu sil'),
+        content: const Text(
+            'Bu fotoğraf şablonu listeden kaldırılsın mı?\n'
+            'Kartlara uygulanmış fotoğraflar etkilenmez.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('İptal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sil'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      final db = ref.read(databaseProvider);
+      await db.customPhotoTemplatesDao.deleteTemplate(tmpl.id);
+    }
+  }
+
+  // ── Source picker bottom sheet ─────────────────────────────────────────────
 
   void _showPhotoSourceSheet() {
     showModalBottomSheet<void>(
@@ -172,11 +234,14 @@ class _DesignBrowserScreenState extends ConsumerState<DesignBrowserScreen> {
     );
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final entitlementsAsync = ref.watch(entitlementsProvider);
+    final templatesAsync = ref.watch(customPhotoTemplatesProvider);
 
-    // Pre-warm the IAP service in the background.
+    // Pre-warm the IAP service.
     ref.watch(iapServiceProvider);
 
     return Scaffold(
@@ -187,14 +252,27 @@ class _DesignBrowserScreenState extends ConsumerState<DesignBrowserScreen> {
       ),
       body: entitlementsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text('Hata: $e')),
         data: (ent) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Custom photo tile ─────────────────────────────────────────
-            _CustomPhotoTile(
+            // ── "Add photo" banner ────────────────────────────────────────
+            _AddPhotoTile(
               isLoading: _isPickingPhoto,
               onTap: _isPickingPhoto ? null : _showPhotoSourceSheet,
+            ),
+
+            // ── Saved photo templates strip ───────────────────────────────
+            templatesAsync.when(
+              data: (templates) => templates.isEmpty
+                  ? const SizedBox.shrink()
+                  : _PhotoTemplatesStrip(
+                      templates: templates,
+                      onTap: _applyTemplate,
+                      onDelete: _deleteTemplate,
+                    ),
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
             ),
 
             // ── Filter bar ────────────────────────────────────────────────
@@ -218,13 +296,13 @@ class _DesignBrowserScreenState extends ConsumerState<DesignBrowserScreen> {
   }
 }
 
-// ── Custom photo tile (always at the top) ─────────────────────────────────────
+// ── "Add photo" banner ────────────────────────────────────────────────────────
 
-class _CustomPhotoTile extends StatelessWidget {
+class _AddPhotoTile extends StatelessWidget {
   final bool isLoading;
   final VoidCallback? onTap;
 
-  const _CustomPhotoTile({required this.isLoading, required this.onTap});
+  const _AddPhotoTile({required this.isLoading, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +315,7 @@ class _CustomPhotoTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          height: 72,
+          height: 64,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -259,8 +337,8 @@ class _CustomPhotoTile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: 44,
-                      height: 44,
+                      width: 38,
+                      height: 38,
                       decoration: BoxDecoration(
                         color: cs.primary,
                         shape: BoxShape.circle,
@@ -268,22 +346,22 @@ class _CustomPhotoTile extends StatelessWidget {
                       child: Icon(
                         Icons.add_photo_alternate_outlined,
                         color: cs.onPrimary,
-                        size: 22,
+                        size: 20,
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Kendi Fotoğrafını Kullan',
+                          'Kendi Fotoğrafını Ekle',
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
-                          'Galeriden veya kameradan seç',
+                          'Galerinden veya kamerandan seç → şablon olarak kaydet',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: cs.outline,
                           ),
@@ -292,6 +370,135 @@ class _CustomPhotoTile extends StatelessWidget {
                     ),
                   ],
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Saved photo templates strip ───────────────────────────────────────────────
+
+class _PhotoTemplatesStrip extends StatelessWidget {
+  final List<CustomPhotoTemplate> templates;
+  final void Function(CustomPhotoTemplate) onTap;
+  final void Function(CustomPhotoTemplate) onDelete;
+
+  const _PhotoTemplatesStrip({
+    required this.templates,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+          child: Text(
+            'Fotoğraflarım',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 88,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: templates.length,
+            itemBuilder: (_, i) => _PhotoTemplateTile(
+              template: templates[i],
+              onTap: () => onTap(templates[i]),
+              onDelete: () => onDelete(templates[i]),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+}
+
+// ── Single photo template tile ────────────────────────────────────────────────
+
+class _PhotoTemplateTile extends StatelessWidget {
+  final CustomPhotoTemplate template;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  const _PhotoTemplateTile({
+    required this.template,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    // Match the ISO 7810 card aspect ratio used throughout the app.
+    const double h = 84;
+    const double w = h * 85.6 / 53.98; // ≈ 133 px
+
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onDelete,
+      child: Container(
+        width: w,
+        height: h,
+        margin: const EdgeInsets.only(right: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: cs.outlineVariant, width: 1.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(9),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Photo with the saved pan/zoom transform applied.
+              Transform(
+                transform: Matrix4.identity()
+                  ..translate(template.offsetX, template.offsetY)
+                  ..scale(template.scale),
+                alignment: Alignment.center,
+                child: Image.file(
+                  File(template.imagePath),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => ColoredBox(
+                    color: cs.surfaceContainerHighest,
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      color: cs.outline,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Subtle delete hint — "long press to delete".
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(153),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -413,9 +620,11 @@ class _DesignTile extends StatelessWidget {
             DecoratedBox(decoration: decoration),
 
             Positioned(
-              right: -16, top: -16,
+              right: -16,
+              top: -16,
               child: Container(
-                width: 72, height: 72,
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white.withAlpha(20),
@@ -423,9 +632,11 @@ class _DesignTile extends StatelessWidget {
               ),
             ),
             Positioned(
-              right: 12, bottom: -22,
+              right: 12,
+              bottom: -22,
               child: Container(
-                width: 50, height: 50,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white.withAlpha(15),
@@ -435,14 +646,21 @@ class _DesignTile extends StatelessWidget {
 
             // Mini EMV chip
             Positioned(
-              left: 10, top: 0, bottom: 28,
+              left: 10,
+              top: 0,
+              bottom: 28,
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
-                  width: 22, height: 16,
+                  width: 22,
+                  height: 16,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFFD4A843), Color(0xFFF5C842), Color(0xFFD4A843)],
+                      colors: [
+                        Color(0xFFD4A843),
+                        Color(0xFFF5C842),
+                        Color(0xFFD4A843),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -458,7 +676,9 @@ class _DesignTile extends StatelessWidget {
 
             // Name scrim
             Positioned(
-              bottom: 0, left: 0, right: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -467,7 +687,8 @@ class _DesignTile extends StatelessWidget {
                     colors: [Colors.black.withAlpha(153), Colors.transparent],
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 child: Text(
                   design.name,
                   style: const TextStyle(
@@ -483,27 +704,31 @@ class _DesignTile extends StatelessWidget {
 
             if (design.isPremium && !isOwned)
               Positioned(
-                top: 8, right: 8,
+                top: 8,
+                right: 8,
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: Colors.black.withAlpha(128),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.lock_outline, color: Colors.white, size: 13),
+                  child: const Icon(Icons.lock_outline,
+                      color: Colors.white, size: 13),
                 ),
               ),
 
             if (design.isPremium && isOwned)
               Positioned(
-                top: 8, right: 8,
+                top: 8,
+                right: 8,
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
                     color: Colors.black45,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 13),
+                  child: const Icon(Icons.check_circle_outline,
+                      color: Colors.white, size: 13),
                 ),
               ),
           ],
