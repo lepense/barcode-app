@@ -253,43 +253,43 @@ class _DesignBrowserScreenState extends ConsumerState<DesignBrowserScreen> {
       body: entitlementsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Hata: $e')),
-        data: (ent) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── "Add photo" banner ────────────────────────────────────────
-            _AddPhotoTile(
-              isLoading: _isPickingPhoto,
-              onTap: _isPickingPhoto ? null : _showPhotoSourceSheet,
-            ),
+        data: (ent) => SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── "Add photo" banner ──────────────────────────────────────
+              _AddPhotoTile(
+                isLoading: _isPickingPhoto,
+                onTap: _isPickingPhoto ? null : _showPhotoSourceSheet,
+              ),
 
-            // ── Saved photo templates strip ───────────────────────────────
-            templatesAsync.when(
-              data: (templates) => templates.isEmpty
-                  ? const SizedBox.shrink()
-                  : _PhotoTemplatesStrip(
-                      templates: templates,
-                      onTap: _applyTemplate,
-                      onDelete: _deleteTemplate,
-                    ),
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+              // ── Saved photo templates grid ──────────────────────────────
+              templatesAsync.when(
+                data: (templates) => templates.isEmpty
+                    ? const SizedBox.shrink()
+                    : _PhotoTemplatesStrip(
+                        templates: templates,
+                        onTap: _applyTemplate,
+                        onDelete: _deleteTemplate,
+                      ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
 
-            // ── Filter bar ────────────────────────────────────────────────
-            _FilterBar(
-              current: _filter,
-              onChanged: (f) => setState(() => _filter = f),
-            ),
+              // ── Filter bar ──────────────────────────────────────────────
+              _FilterBar(
+                current: _filter,
+                onChanged: (f) => setState(() => _filter = f),
+              ),
 
-            // ── Design grid ───────────────────────────────────────────────
-            Expanded(
-              child: _DesignGrid(
+              // ── Design grid (shrinkWrap inside the shared scroll) ───────
+              _DesignGrid(
                 designs: _filtered(ent),
                 entitlements: ent,
                 onTap: (d) => _onDesignTap(d, ent),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -376,7 +376,7 @@ class _AddPhotoTile extends StatelessWidget {
   }
 }
 
-// ── Saved photo templates strip ───────────────────────────────────────────────
+// ── Saved photo templates grid ────────────────────────────────────────────────
 
 class _PhotoTemplatesStrip extends StatelessWidget {
   final List<CustomPhotoTemplate> templates;
@@ -404,17 +404,24 @@ class _PhotoTemplatesStrip extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(
-          height: 88,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: templates.length,
-            itemBuilder: (_, i) => _PhotoTemplateTile(
-              template: templates[i],
-              onTap: () => onTap(templates[i]),
-              onDelete: () => onDelete(templates[i]),
-            ),
+        // 2-column grid, same aspect ratio as the design tiles.
+        // shrinkWrap + NeverScrollableScrollPhysics so the outer Column
+        // owns the scroll — the design grid below still scrolls independently.
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 85.6 / 53.98,
+          ),
+          itemCount: templates.length,
+          itemBuilder: (_, i) => _PhotoTemplateTile(
+            template: templates[i],
+            onTap: () => onTap(templates[i]),
+            onDelete: () => onDelete(templates[i]),
           ),
         ),
         const SizedBox(height: 4),
@@ -440,17 +447,11 @@ class _PhotoTemplateTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // Match the ISO 7810 card aspect ratio used throughout the app.
-    const double h = 84;
-    const double w = h * 85.6 / 53.98; // ≈ 133 px
-
     return GestureDetector(
       onTap: onTap,
       onLongPress: onDelete,
       child: Container(
-        width: w,
-        height: h,
-        margin: const EdgeInsets.only(right: 10),
+        // Width & height come from the parent GridView; no explicit sizing needed.
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: cs.outlineVariant, width: 1.5),
@@ -546,17 +547,22 @@ class _DesignGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (designs.isEmpty) {
-      return Center(
-        child: Text(
-          'Bu kategoride tasarım yok',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              ),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Center(
+          child: Text(
+            'Bu kategoride tasarım yok',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+          ),
         ),
       );
     }
 
     return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
