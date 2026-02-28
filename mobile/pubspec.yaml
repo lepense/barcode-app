@@ -56,6 +56,9 @@ dependencies:
   # Image picker (gallery + camera) for custom card covers
   image_picker: ^1.1.2
 
+  # Lottie animations
+  lottie: ^3.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -73,3 +76,6 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/animations/

@@ -1,3 +1,20 @@
+/// Lottie animation asset paths.
+class LottieAssets {
+  LottieAssets._();
+
+  /// Boş kart listesi ekranında gösterilen animasyon.
+  static const String emptyCards = 'assets/animations/empty_cards.json';
+
+  /// Barkod tarama başarılı olduğunda gösterilen animasyon.
+  static const String scanSuccess = 'assets/animations/scan_success.json';
+
+  /// Veri yüklenirken gösterilen loading animasyonu.
+  static const String loading = 'assets/animations/loading.json';
+
+  /// Paywall / premium ekranında gösterilen animasyon.
+  static const String premiumCrown = 'assets/animations/premium_crown.json';
+}
+
 /// Application-wide constants.
 class AppConstants {
   AppConstants._();

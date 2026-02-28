@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/cards_provider.dart';
 import 'card_cover_widget.dart';
 
@@ -23,7 +25,14 @@ class CardListScreen extends ConsumerWidget {
         ],
       ),
       body: cardsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Center(
+          child: Lottie.asset(
+            LottieAssets.loading,
+            width: 80,
+            height: 80,
+            repeat: true,
+          ),
+        ),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (cards) => cards.isEmpty
             ? const _EmptyState()
@@ -87,21 +96,25 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.credit_card_off,
-            size: 72,
-            color: theme.colorScheme.outline,
+          Lottie.asset(
+            LottieAssets.emptyCards,
+            width: 200,
+            height: 200,
+            repeat: true,
+            frameRate: FrameRate.max,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           Text(
-            'No cards yet',
+            'Henüz kart yok',
             style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.colorScheme.outline,
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap + to add your first loyalty card',
+            'İlk sadakat kartını eklemek için + düğmesine bas',
+            textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.outline,
             ),

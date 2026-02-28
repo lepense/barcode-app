@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/cards_provider.dart';
 import '../../../core/services/barcode_lookup_service.dart';
 import '../domain/card_model.dart';
@@ -47,6 +49,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
   String _selectedBarcodeType = 'QR';
   bool _isSaving = false;
   bool _isLookingUp = false;
+  bool _showScanSuccess = false;
 
   static const _barcodeTypes = [
     'QR',
@@ -78,11 +81,16 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
 
     final type = _mapFormat(scan.format);
 
-    // Auto-fill barcode type and value immediately
+    // Auto-fill barcode type and value immediately + show success anim
     setState(() {
       _selectedBarcodeType = type;
       _barcodeController.text = scan.value;
       _isLookingUp = true;
+      _showScanSuccess = true;
+    });
+    // Hide success animation after 1.5s
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) setState(() => _showScanSuccess = false);
     });
 
     // Try to resolve merchant name in the background
@@ -139,7 +147,9 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Kart Ekle')),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Form(
@@ -246,6 +256,24 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
             ),
           ),
         ),
+      ),
+
+          // ── Scan success overlay ─────────────────────────────────────────
+          if (_showScanSuccess)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Center(
+                  child: Lottie.asset(
+                    LottieAssets.scanSuccess,
+                    width: 160,
+                    height: 160,
+                    repeat: false,
+                    frameRate: FrameRate.max,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

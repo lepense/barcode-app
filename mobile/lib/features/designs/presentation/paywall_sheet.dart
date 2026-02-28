@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:lottie/lottie.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/iap_provider.dart';
 import '../../iap/data/iap_service.dart';
 import '../../iap/domain/iap_skus.dart';
@@ -111,11 +113,23 @@ class _PaywallSheetState extends ConsumerState<PaywallSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+
+          // Premium crown animation
+          Center(
+            child: Lottie.asset(
+              LottieAssets.premiumCrown,
+              width: 120,
+              height: 120,
+              repeat: true,
+              frameRate: FrameRate.max,
+            ),
+          ),
+          const SizedBox(height: 8),
 
           // Design preview tile
           _DesignPreview(design: widget.design),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Title
           Text(
