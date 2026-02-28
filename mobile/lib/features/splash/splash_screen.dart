@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/widgets/app_glow_logo.dart';
+
 /// Full-screen animated splash shown once at app startup.
 ///
 /// Animation sequence:
@@ -28,11 +30,7 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _glow;          // 0 → 1 (breathe)
   late final Animation<double> _exitOpacity;   // 1 → 0 (screen out)
 
-  // ── Gold palette (matches the logo) ────────────────────────────────────────
-  static const Color _bg        = Color(0xFF0C0C18);
-  static const Color _goldInner = Color(0xFFD4A843);
-  static const Color _goldOuter = Color(0xFFE8C55A);
-  static const Color _goldHalo  = Color(0xFFF5D060);
+  static const Color _bg = Color(0xFF0C0C18);
 
   @override
   void initState() {
@@ -92,11 +90,8 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation:
-          Listenable.merge([_entryCtrl, _glowCtrl, _exitCtrl]),
+      animation: Listenable.merge([_entryCtrl, _glowCtrl, _exitCtrl]),
       builder: (context, _) {
-        final g = _glow.value;
-
         return Opacity(
           opacity: _exitOpacity.value,
           child: ColoredBox(
@@ -107,7 +102,7 @@ class _SplashScreenState extends State<SplashScreen>
                   opacity: _logoOpacity.value,
                   child: Transform.scale(
                     scale: _scale.value,
-                    child: _GlowLogo(glowIntensity: g),
+                    child: AppGlowLogo(glowIntensity: _glow.value),
                   ),
                 ),
               ),
@@ -115,60 +110,6 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         );
       },
-    );
-  }
-}
-
-// ── Glow logo widget ──────────────────────────────────────────────────────────
-
-class _GlowLogo extends StatelessWidget {
-  final double glowIntensity; // 0.0 → 1.0
-  const _GlowLogo({required this.glowIntensity});
-
-  @override
-  Widget build(BuildContext context) {
-    final g = glowIntensity;
-    const size = 200.0;
-    const radius = 40.0;
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        boxShadow: [
-          // Tight inner glow
-          BoxShadow(
-            color: _SplashScreenState._goldInner
-                .withAlpha((200 * g).round()),
-            blurRadius: 28 * g,
-            spreadRadius: 2 * g,
-          ),
-          // Mid glow
-          BoxShadow(
-            color: _SplashScreenState._goldOuter
-                .withAlpha((140 * g).round()),
-            blurRadius: 60 * g,
-            spreadRadius: 6 * g,
-          ),
-          // Wide halo
-          BoxShadow(
-            color: _SplashScreenState._goldHalo
-                .withAlpha((80 * g).round()),
-            blurRadius: 120 * g,
-            spreadRadius: 4 * g,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: Image.asset(
-          'assets/images/logo.png',
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-        ),
-      ),
     );
   }
 }
