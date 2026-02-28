@@ -70,6 +70,7 @@ dev_dependencies:
   custom_lint: ^0.7.5
   riverpod_lint: ^2.6.3
   mockito: ^5.4.6
+  flutter_launcher_icons: ^0.14.1
 
 dependency_overrides:
   sqlite3: ^3.1.6
@@ -79,3 +80,11 @@ flutter:
 
   assets:
     - assets/animations/
+    - assets/images/
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
