@@ -195,7 +195,7 @@ class _CardFrame extends StatelessWidget {
   final String imagePath;
   final Offset offset;
   final double scale;
-  final GestureDragStartCallback? onScaleStart;
+  final void Function(ScaleStartDetails)? onScaleStart;
   final Function(ScaleUpdateDetails)? onScaleUpdate;
 
   const _CardFrame({
