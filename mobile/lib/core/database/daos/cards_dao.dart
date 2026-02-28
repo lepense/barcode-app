@@ -16,6 +16,10 @@ class CardsDao extends DatabaseAccessor<AppDatabase> with _$CardsDaoMixin {
   Future<Card> getCardById(int id) =>
       (select(cards)..where((c) => c.id.equals(id))).getSingle();
 
+  /// Emits a new [Card] whenever the row with [id] changes in the DB.
+  Stream<Card> watchCardById(int id) =>
+      (select(cards)..where((c) => c.id.equals(id))).watchSingle();
+
   Future<int> insertCard(CardsCompanion entry) => into(cards).insert(entry);
 
   Future<bool> updateCard(Card entry) => update(cards).replace(entry);

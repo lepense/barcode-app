@@ -16,9 +16,10 @@ import 'card_cover_widget.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
+/// Streams the single card with [id] — rebuilds automatically on any DB change.
 final _cardDetailProvider =
-    FutureProvider.family<LoyaltyCard, int>((ref, id) async {
-  return ref.watch(cardRepositoryProvider).getCardById(id);
+    StreamProvider.family<LoyaltyCard, int>((ref, id) {
+  return ref.watch(cardRepositoryProvider).watchCardById(id);
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -73,11 +74,13 @@ class _CardDetailView extends ConsumerWidget {
       '/designs',
       extra: card.id.toString(),
     );
+    // If a design was selected via the grid (pop returns its id), apply it.
+    // Template selection applies the card directly inside DesignBrowserScreen
+    // and pops without a value — the StreamProvider updates automatically.
     if (designId != null && card.id != null) {
       await ref.read(cardRepositoryProvider).updateCard(
             card.copyWith(coverDesignId: designId),
           );
-      ref.invalidate(_cardDetailProvider(card.id!));
     }
   }
 
@@ -86,7 +89,6 @@ class _CardDetailView extends ConsumerWidget {
     await ref.read(cardRepositoryProvider).updateCard(
           card.copyWith(coverDesignId: null),
         );
-    ref.invalidate(_cardDetailProvider(card.id!));
   }
 
   // ── Custom photo ──────────────────────────────────────────────────────────
@@ -123,12 +125,12 @@ class _CardDetailView extends ConsumerWidget {
             coverDesignId: null, // clear any gradient design
           ),
         );
-    ref.invalidate(_cardDetailProvider(card.id!));
+    // StreamProvider updates automatically — no invalidate needed.
   }
 
   Future<void> _removePhoto(WidgetRef ref) async {
     if (card.id == null) return;
-    // Delete the file from disk if it lives in our covers dir
+    // Delete the file from disk if it lives in our covers dir.
     if (card.customCoverImagePath != null) {
       final f = File(card.customCoverImagePath!);
       if (f.existsSync()) f.deleteSync();
@@ -136,7 +138,7 @@ class _CardDetailView extends ConsumerWidget {
     await ref.read(cardRepositoryProvider).updateCard(
           card.copyWith(customCoverImagePath: null),
         );
-    ref.invalidate(_cardDetailProvider(card.id!));
+    // StreamProvider updates automatically — no invalidate needed.
   }
 
   void _showCoverSheet(BuildContext context, WidgetRef ref) {

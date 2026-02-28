@@ -74,6 +74,11 @@ class DriftCardRepository implements CardRepository {
   }
 
   @override
+  Stream<LoyaltyCard> watchCardById(int id) {
+    return _db.cardsDao.watchCardById(id).map(_fromRow);
+  }
+
+  @override
   Future<int> addCard(LoyaltyCard card) {
     return _db.cardsDao.insertCard(_toCompanion(card));
   }
