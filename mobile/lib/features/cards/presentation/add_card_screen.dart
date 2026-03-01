@@ -9,6 +9,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/cards_provider.dart';
 import '../../../core/services/ai_card_service.dart';
 import '../../../core/services/barcode_lookup_service.dart';
+import '../../designs/domain/design_catalog.dart';
 import '../domain/card_model.dart';
 import 'share_card_sheet.dart';
 
@@ -54,6 +55,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
   bool _isLookingUp = false;
   bool _isAiScanning = false;
   bool _showScanSuccess = false;
+  String? _suggestedDesignId;
 
   static const _barcodeTypes = [
     'QR',
@@ -150,6 +152,9 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
 
     if (name != null && name.isNotEmpty) {
       _merchantController.text = name;
+      setState(() {
+        _suggestedDesignId = DesignCatalog.suggestDesignFor(name);
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Name auto-detected: $name'),
@@ -190,6 +195,8 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
       setState(() {
         if (result.merchantName?.isNotEmpty ?? false) {
           _merchantController.text = result.merchantName!;
+          _suggestedDesignId =
+              DesignCatalog.suggestDesignFor(result.merchantName!);
         }
         if (result.barcodeValue?.isNotEmpty ?? false) {
           _barcodeController.text = result.barcodeValue!;
@@ -242,6 +249,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
         merchantName: _merchantController.text.trim(),
         barcodeType: _selectedBarcodeType,
         barcodeValue: _barcodeController.text.trim(),
+        coverDesignId: _suggestedDesignId,
         createdAt: now,
         updatedAt: now,
       );
@@ -316,6 +324,14 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                   validator: (v) =>
                       v != null && v.isNotEmpty ? null : 'Enter store name',
                 ),
+
+                // ── Auto-matched design chip ────────────────────────────────
+                if (_suggestedDesignId != null)
+                  _DesignSuggestionBanner(
+                    designId: _suggestedDesignId!,
+                    onDismiss: () =>
+                        setState(() => _suggestedDesignId = null),
+                  ),
 
                 const SizedBox(height: 16),
 
@@ -410,6 +426,98 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Design suggestion banner ─────────────────────────────────────────────────
+
+class _DesignSuggestionBanner extends StatelessWidget {
+  final String designId;
+  final VoidCallback onDismiss;
+
+  const _DesignSuggestionBanner({
+    required this.designId,
+    required this.onDismiss,
+  });
+
+  static Color _hex(String hex) {
+    final h = hex.replaceFirst('#', '');
+    return Color(int.parse('FF$h', radix: 16));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final design = DesignCatalog.findById(designId);
+    if (design == null) return const SizedBox.shrink();
+
+    final colors = design.gradientColors.map(_hex).toList();
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.secondaryContainer.withAlpha(120),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: theme.colorScheme.secondaryContainer,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Gradient swatch
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: colors.length >= 2
+                      ? colors
+                      : [colors.first, colors.first],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Label
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Auto-matched design',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  Text(
+                    design.name,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Dismiss
+            IconButton(
+              icon: const Icon(Icons.close, size: 16),
+              visualDensity: VisualDensity.compact,
+              color: theme.colorScheme.onSecondaryContainer,
+              tooltip: 'Remove design',
+              onPressed: onDismiss,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
       ),
     );
   }

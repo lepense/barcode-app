@@ -155,4 +155,122 @@ abstract class DesignCatalog {
       return null;
     }
   }
+
+  // ── Smart design suggestion ───────────────────────────────────────────────
+
+  /// Returns a free design ID that best matches the [merchantName].
+  ///
+  /// Uses keyword-category rules first (grocery → green, coffee → teal, etc.).
+  /// Falls back to a consistent hash so the same merchant always gets the
+  /// same design even without an explicit rule.
+  static String suggestDesignFor(String merchantName) {
+    if (merchantName.isEmpty) return 'doodle_scribbles';
+    final lower = merchantName.toLowerCase();
+
+    // [keywords, designId] — first rule whose ANY keyword appears wins.
+    final rules = <List<Object>>[
+      // Grocery / supermarket → fresh green
+      [
+        ['migros', 'bim', 'a101', 'şok', 'sok', 'carrefour', 'walmart',
+         'target', 'market', 'grocery', 'supermarket', 'lidl', 'aldi',
+         'tesco', 'spar', 'metro', 'rewe', 'edeka', 'kroger', 'whole foods',
+         'hypermarket', 'hiper'],
+        'doodle_scribbles',
+      ],
+      // Coffee / café → teal waves
+      [
+        ['starbucks', 'costa', 'coffee', 'café', 'cafe', 'kahve', 'tchibo',
+         'nero', 'pret', 'tim horton'],
+        'doodle_waves',
+      ],
+      // Fast food / restaurant → warm orange
+      [
+        ['mcdonald', 'burger', 'kfc', 'pizza', 'domino', 'subway', 'taco',
+         'wendy', 'popeyes', 'yemek', 'restaurant', 'restoran', 'kebap',
+         'doner', 'döner', 'sushi', 'noodle', 'bistro'],
+        'doodle_triangles',
+      ],
+      // Beauty / pharmacy → purple flowers
+      [
+        ['watsons', 'rossmann', 'sephora', 'eczane', 'pharmacy', 'güzellik',
+         'beauty', 'kozmetik', 'parfüm', 'skincare', 'boots', 'ulta',
+         'drmax', 'rite aid', 'cvs'],
+        'doodle_flowers',
+      ],
+      // Fashion / clothing → blue stripes
+      [
+        ['zara', 'h&m', 'hm', 'mango', 'gap', 'lcw', 'lc waikiki',
+         'defacto', 'koton', 'bershka', 'mavi', 'giyim', 'fashion',
+         'clothing', 'pull&bear', 'massimo dutti', 'uniqlo', 'forever21'],
+        'doodle_stripes',
+      ],
+      // Sports → blue stripes
+      [
+        ['nike', 'adidas', 'puma', 'reebok', 'new balance', 'decathlon',
+         'intersport', 'sport', 'spor', 'athletic', 'fitness', 'gym',
+         'yoga', 'columbia', 'patagonia', 'north face'],
+        'doodle_stripes',
+      ],
+      // Electronics / tech → sky blue
+      [
+        ['mediamarkt', 'media markt', 'teknosa', 'vatan', 'apple store',
+         'samsung', 'teknoloji', 'electronic', 'elektronik', 'best buy',
+         'currys', 'fnac'],
+        'free_ocean',
+      ],
+      // Travel / airline → sky blue
+      [
+        ['airline', 'airways', 'pegasus', 'thy', 'lufthansa', 'ryanair',
+         'easyjet', 'hotel', 'otel', 'hilton', 'marriott', 'booking',
+         'airbnb', 'travel', 'seyahat'],
+        'free_ocean',
+      ],
+      // Gas / fuel → orange triangles
+      [
+        ['petrol', 'shell', 'opet', 'total', 'fuel', 'benzin', 'bp petrol',
+         'lukoil', 'akaryakıt', 'station', 'bp'],
+        'doodle_triangles',
+      ],
+      // Cinema / entertainment → dark stars
+      [
+        ['cinema', 'sinema', 'cinemaximum', 'netflix', 'disney', 'film',
+         'cgv', 'vue', 'odeon', 'kinopolis'],
+        'doodle_stars',
+      ],
+      // Jewelry / luxury → gold stars
+      [
+        ['altın', 'jewelry', 'mücevher', 'diamond', 'elmas', 'altınbaş',
+         'altınyıldız', 'swarovski', 'pandora', 'tiffany'],
+        'doodle_stars',
+      ],
+      // Books / stationery → zigzag
+      [
+        ['kitap', 'book', 'kırtasiye', 'stationery', 'library', 'kütüphane',
+         'barnes', 'waterstones', 'd&r', 'idefix', 'yazıcı'],
+        'doodle_zigzag',
+      ],
+      // Healthcare → hearts
+      [
+        ['hospital', 'hastane', 'doktor', 'doctor', 'clinic', 'klinik',
+         'saglik', 'sağlık', 'health', 'medical'],
+        'doodle_hearts',
+      ],
+    ];
+
+    for (final rule in rules) {
+      final words = rule[0] as List<String>;
+      final designId = rule[1] as String;
+      if (words.any((w) => lower.contains(w))) return designId;
+    }
+
+    // Fallback: deterministic hash → free design (same merchant → same design)
+    const freeIds = [
+      'doodle_scribbles', 'doodle_stripes', 'doodle_zigzag', 'doodle_polka',
+      'doodle_waves', 'doodle_triangles', 'doodle_flowers', 'doodle_stars',
+      'doodle_hearts', 'doodle_crosshatch', 'free_ocean', 'free_midnight',
+      'free_white',
+    ];
+    final hash = lower.runes.fold<int>(0, (sum, c) => sum + c);
+    return freeIds[hash % freeIds.length];
+  }
 }
