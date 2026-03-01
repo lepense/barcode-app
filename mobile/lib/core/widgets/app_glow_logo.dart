@@ -14,13 +14,8 @@ class AppGlowLogo extends StatelessWidget {
     required this.glowIntensity,
   });
 
-  static const Color _goldInner = Color(0xFFD4A843);
-  static const Color _goldOuter = Color(0xFFE8C55A);
-  static const Color _goldHalo  = Color(0xFFF5D060);
-
   @override
   Widget build(BuildContext context) {
-    final g = glowIntensity;
     final radius = size * 0.20; // keeps the corner ratio consistent
 
     return Container(
@@ -28,20 +23,6 @@ class AppGlowLogo extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        boxShadow: [
-          // Border glow — hugs the logo edge
-          BoxShadow(
-            color: _goldInner.withAlpha((160 * g).round()),
-            blurRadius: 3 * g,
-            spreadRadius: 0,
-          ),
-          // Soft rim — just a couple of pixels beyond the border
-          BoxShadow(
-            color: _goldOuter.withAlpha((80 * g).round()),
-            blurRadius: 6 * g,
-            spreadRadius: 0,
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
