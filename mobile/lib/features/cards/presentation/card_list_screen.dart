@@ -5,6 +5,7 @@ import 'package:lottie/lottie.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/cards_provider.dart';
+import '../../../core/services/widget_service.dart';
 import 'card_cover_widget.dart';
 
 class CardListScreen extends ConsumerWidget {
@@ -34,7 +35,10 @@ class CardListScreen extends ConsumerWidget {
           ),
         ),
         error: (e, _) => Center(child: Text('Error: $e')),
-        data: (cards) => cards.isEmpty
+        data: (cards) {
+          // Keep widget in sync with the first card in the list
+          if (cards.isNotEmpty) WidgetService.updateWithCard(cards.first);
+          return cards.isEmpty
             ? const _EmptyState()
             : ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -47,7 +51,8 @@ class CardListScreen extends ConsumerWidget {
                     onTap: () => context.push('/home/card/${card.id}'),
                   );
                 },
-              ),
+              );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/home/add'),

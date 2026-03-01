@@ -9,10 +9,12 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/providers/cards_provider.dart';
+import '../../../core/services/widget_service.dart';
 import '../../designs/domain/design_catalog.dart';
 import '../../designs/domain/design_model.dart';
 import '../domain/card_model.dart';
 import 'card_cover_widget.dart';
+import 'share_card_sheet.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -252,10 +254,25 @@ class _CardDetailView extends ConsumerWidget {
         ? DesignCatalog.findById(card.coverDesignId!)
         : null;
 
+    // Update home screen widget whenever this card is viewed
+    WidgetService.updateWithCard(card);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(card.merchantName),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: 'Kartı paylaş',
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              builder: (_) => ShareCardSheet(card: card),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: 'Delete card',

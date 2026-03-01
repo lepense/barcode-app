@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'app/app.dart';
+import 'core/services/widget_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,9 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase init skipped: $e');
   }
+
+  // Home screen widget plugin init (iOS App Group ID).
+  await WidgetService.init();
 
   // google_sign_in v7: initialize() must be called exactly once before authenticate().
   // serverClientId is the web OAuth client (type 3) from google-services.json —

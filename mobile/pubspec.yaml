@@ -59,6 +59,13 @@ dependencies:
   # Lottie animations
   lottie: ^3.1.0
 
+  # Home screen widget (Android + iOS)
+  home_widget: ^0.6.0
+
+  # AI card recognition
+  google_mlkit_text_recognition: ^0.13.0
+  google_generative_ai: ^0.4.6
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

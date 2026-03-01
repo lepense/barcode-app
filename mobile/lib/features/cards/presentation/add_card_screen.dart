@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/cards_provider.dart';
+import '../../../core/services/ai_card_service.dart';
 import '../../../core/services/barcode_lookup_service.dart';
 import '../domain/card_model.dart';
+import 'share_card_sheet.dart';
 
 // ── Internal scan result ─────────────────────────────────────────────────────
 
@@ -49,6 +52,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
   String _selectedBarcodeType = 'QR';
   bool _isSaving = false;
   bool _isLookingUp = false;
+  bool _isAiScanning = false;
   bool _showScanSuccess = false;
 
   static const _barcodeTypes = [
@@ -78,6 +82,51 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
       MaterialPageRoute(builder: (_) => const _BarcodeScannerSheet()),
     );
     if (scan == null || !mounted) return;
+
+    // ── Check if this is a Barcode Wallet share QR ──────────────────────────
+    final shared = ShareCardSheet.tryDecodeCard(scan.value);
+    if (shared != null && mounted) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Kart İçe Aktar'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Bu QR kod bir Barcode Wallet kartı içeriyor:'),
+              const SizedBox(height: 12),
+              Text('Mağaza: ${shared.merchantName}',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('Barkod: ${shared.barcodeValue}'),
+              Text('Tür: ${shared.barcodeType}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('İptal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Ekle'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed == true && mounted) {
+        setState(() {
+          _merchantController.text = shared.merchantName;
+          _barcodeController.text = shared.barcodeValue;
+          _selectedBarcodeType = shared.barcodeType;
+          _showScanSuccess = true;
+        });
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) setState(() => _showScanSuccess = false);
+        });
+      }
+      return; // Do not run normal barcode lookup
+    }
 
     final type = _mapFormat(scan.format);
 
@@ -110,6 +159,75 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
       );
     }
     // If name was not found: merchant field stays empty → user types it
+  }
+
+  // ── AI Scan ────────────────────────────────────────────────────────────────
+
+  Future<void> _aiScan() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 90,
+      maxWidth: 1200,
+    );
+    if (image == null || !mounted) return;
+
+    setState(() => _isAiScanning = true);
+    try {
+      final result = await AiCardService.recognizeCard(image);
+      if (!mounted) return;
+
+      if (!result.hasData) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kart bilgisi tanınamadı, lütfen manuel girin'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        if (result.merchantName?.isNotEmpty ?? false) {
+          _merchantController.text = result.merchantName!;
+        }
+        if (result.barcodeValue?.isNotEmpty ?? false) {
+          _barcodeController.text = result.barcodeValue!;
+        }
+        if (result.barcodeType?.isNotEmpty ?? false) {
+          _selectedBarcodeType = result.barcodeType!;
+        }
+        _showScanSuccess = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) setState(() => _showScanSuccess = false);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.merchantName?.isNotEmpty ?? false
+                  ? 'AI ile tespit edildi: ${result.merchantName}'
+                  : 'AI tarama tamamlandı',
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('AI tarama hatası: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isAiScanning = false);
+    }
   }
 
   // ── Save ───────────────────────────────────────────────────────────────────
@@ -146,7 +264,25 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kart Ekle')),
+      appBar: AppBar(
+        title: const Text('Kart Ekle'),
+        actions: [
+          if (_isAiScanning)
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.auto_awesome_outlined),
+              tooltip: 'Kartı AI ile tara',
+              onPressed: _aiScan,
+            ),
+        ],
+      ),
       body: Stack(
         children: [
           SafeArea(
@@ -243,7 +379,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                 const SizedBox(height: 32),
 
                 FilledButton.icon(
-                  onPressed: (_isSaving || _isLookingUp) ? null : _saveCard,
+                  onPressed: (_isSaving || _isLookingUp || _isAiScanning) ? null : _saveCard,
                   icon: _isSaving
                       ? const SizedBox.square(
                           dimension: 18,

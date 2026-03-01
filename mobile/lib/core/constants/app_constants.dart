@@ -47,6 +47,10 @@ class AppConstants {
     skuPackNeon,
   };
 
+  // Gemini AI — get your key at https://aistudio.google.com → "Get API key"
+  // ⚠️  Paste your key here. Do NOT commit to git (add to .gitignore or use --dart-define).
+  static const String geminiApiKey = '';
+
   // Firebase Function base URLs
   static const String _fnBase =
       'https://us-central1-barcode-app-5919e.cloudfunctions.net';
