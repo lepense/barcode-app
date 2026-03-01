@@ -21,7 +21,7 @@ class AppGlowLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final g = glowIntensity;
     final radius = size * 0.20;
-    final borderWidth = size * 0.012; // ~2.4 px on 200px logo, scales with size
+    final borderWidth = size * 0.005; // ~1 px on 200px logo, scales with size
 
     return Container(
       width: size,
@@ -34,16 +34,9 @@ class AppGlowLogo extends StatelessWidget {
           width: borderWidth,
         ),
         boxShadow: [
-          // Tight outer glow — stays at the border
           BoxShadow(
-            color: _goldGlow.withAlpha((160 * g).round()),
-            blurRadius: 5 * g,
-            spreadRadius: 0,
-          ),
-          // Softer wide aura — subtle, not bloated
-          BoxShadow(
-            color: _goldGlow.withAlpha((60 * g).round()),
-            blurRadius: 10 * g,
+            color: _goldGlow.withAlpha((140 * g).round()),
+            blurRadius: 3 * g,
             spreadRadius: 0,
           ),
         ],
