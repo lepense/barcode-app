@@ -31,21 +31,21 @@ class AppGlowLogo extends StatelessWidget {
         boxShadow: [
           // Tight inner glow
           BoxShadow(
-            color: _goldInner.withAlpha((200 * g).round()),
-            blurRadius: 28 * g,
-            spreadRadius: 2 * g,
+            color: _goldInner.withAlpha((130 * g).round()),
+            blurRadius: 12 * g,
+            spreadRadius: 1 * g,
           ),
           // Mid glow
           BoxShadow(
-            color: _goldOuter.withAlpha((140 * g).round()),
-            blurRadius: 60 * g,
-            spreadRadius: 6 * g,
+            color: _goldOuter.withAlpha((90 * g).round()),
+            blurRadius: 26 * g,
+            spreadRadius: 2 * g,
           ),
-          // Wide halo
+          // Soft outer halo
           BoxShadow(
-            color: _goldHalo.withAlpha((80 * g).round()),
-            blurRadius: 120 * g,
-            spreadRadius: 4 * g,
+            color: _goldHalo.withAlpha((45 * g).round()),
+            blurRadius: 50 * g,
+            spreadRadius: 0,
           ),
         ],
       ),
