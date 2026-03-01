@@ -109,7 +109,7 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () {
               showAboutDialog(
                 context: context,
-                applicationName: 'Barcode App',
+                applicationName: 'Barcode Wallet',
                 applicationVersion: '1.0.0',
                 applicationLegalese: '© 2026',
               );

@@ -20,7 +20,7 @@ class _BarcodeAppState extends ConsumerState<BarcodeApp> {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Barcode App',
+      title: 'Barcode Wallet',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

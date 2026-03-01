@@ -19,7 +19,7 @@ class LottieAssets {
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'Barcode App';
+  static const String appName = 'Barcode Wallet';
   static const String appVersion = '1.0.0';
 
   // Barcode types supported

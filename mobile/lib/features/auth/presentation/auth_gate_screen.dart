@@ -133,7 +133,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
               const SizedBox(height: 32),
 
               Text(
-                'Barcode App',
+                'Barcode Wallet',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
