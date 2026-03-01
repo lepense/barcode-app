@@ -37,13 +37,13 @@ class AppGlowLogo extends StatelessWidget {
           // Tight outer glow — stays at the border
           BoxShadow(
             color: _goldGlow.withAlpha((160 * g).round()),
-            blurRadius: 10 * g,
-            spreadRadius: 1 * g,
+            blurRadius: 5 * g,
+            spreadRadius: 0,
           ),
           // Softer wide aura — subtle, not bloated
           BoxShadow(
             color: _goldGlow.withAlpha((60 * g).round()),
-            blurRadius: 22 * g,
+            blurRadius: 10 * g,
             spreadRadius: 0,
           ),
         ],
