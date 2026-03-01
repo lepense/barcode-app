@@ -38,7 +38,7 @@ class WidgetService {
             'widget_card_id', card.id?.toString() ?? ''),
       ]);
       await HomeWidget.updateWidget(
-        androidName: _androidClass,
+        androidName: 'BarcodeWalletWidgetProvider',
         qualifiedAndroidName: _androidClass,
       );
     } catch (e) {
@@ -56,7 +56,7 @@ class WidgetService {
         HomeWidget.saveWidgetData<String>('widget_card_id', ''),
       ]);
       await HomeWidget.updateWidget(
-        androidName: _androidClass,
+        androidName: 'BarcodeWalletWidgetProvider',
         qualifiedAndroidName: _androidClass,
       );
     } catch (e) {

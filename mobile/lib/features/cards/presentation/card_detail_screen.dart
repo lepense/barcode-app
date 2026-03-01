@@ -165,7 +165,7 @@ class _CardDetailView extends ConsumerWidget {
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Galeriden seç'),
+              title: const Text('Choose from gallery'),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickPhoto(context, ref, ImageSource.gallery);
@@ -173,7 +173,7 @@ class _CardDetailView extends ConsumerWidget {
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Fotoğraf çek'),
+              title: const Text('Take photo'),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickPhoto(context, ref, ImageSource.camera);
@@ -181,7 +181,7 @@ class _CardDetailView extends ConsumerWidget {
             ),
             ListTile(
               leading: const Icon(Icons.palette_outlined),
-              title: const Text('Hazır tema seç'),
+              title: const Text('Choose template'),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickDesign(context, ref);
@@ -195,8 +195,8 @@ class _CardDetailView extends ConsumerWidget {
                     color: Theme.of(ctx).colorScheme.error),
                 title: Text(
                   card.customCoverImagePath != null
-                      ? 'Fotoğrafı kaldır'
-                      : 'Temayı kaldır',
+                      ? 'Remove photo'
+                      : 'Remove template',
                   style:
                       TextStyle(color: Theme.of(ctx).colorScheme.error),
                 ),
@@ -263,7 +263,7 @@ class _CardDetailView extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined),
-            tooltip: 'Kartı paylaş',
+            tooltip: 'Share card',
             onPressed: () => showModalBottomSheet<void>(
               context: context,
               isScrollControlled: true,
@@ -301,7 +301,7 @@ class _CardDetailView extends ConsumerWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Özel fotoğraf',
+                        'Custom photo',
                         style: Theme.of(context).textTheme.bodySmall,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -312,7 +312,7 @@ class _CardDetailView extends ConsumerWidget {
                   ] else
                     Expanded(
                       child: Text(
-                        'Kapak yok',
+                        'No cover',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context).colorScheme.outline,
                             ),
@@ -321,7 +321,7 @@ class _CardDetailView extends ConsumerWidget {
                   // Action button — always visible
                   OutlinedButton.icon(
                     icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: const Text('Kapağı düzenle'),
+                    label: const Text('Edit cover'),
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(

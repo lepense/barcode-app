@@ -51,8 +51,8 @@ class AiCardService {
     // ── Step 2: Gemini parsing ───────────────────────────────────────────────
     final apiKey = AppConstants.geminiApiKey;
     if (apiKey.isEmpty) {
-      debugPrint('[AiCardService] Gemini API key not set — returning OCR fallback.');
-      return AiCardResult(merchantName: rawText.split('\n').first.trim());
+      debugPrint('[AiCardService] Gemini API key not set — using OCR heuristic fallback.');
+      return _ocrFallback(rawText);
     }
 
     try {
@@ -80,8 +80,50 @@ class AiCardService {
       );
     } catch (e) {
       debugPrint('[AiCardService] Gemini error: $e');
-      // Fallback: use first OCR line as merchant name
-      return AiCardResult(merchantName: rawText.split('\n').first.trim());
+      return _ocrFallback(rawText);
     }
+  }
+
+  // ── OCR heuristic fallback ──────────────────────────────────────────────────
+  // Used when Gemini is unavailable. Extracts:
+  //  • merchantName = first non-empty line (likely the store name)
+  //  • barcodeValue = line that most looks like a card/barcode number:
+  //      – pure digit run of 8+ digits, OR
+  //      – uppercase alphanumeric token of 6+ chars with no spaces
+  static AiCardResult _ocrFallback(String rawText) {
+    final lines = rawText
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+
+    if (lines.isEmpty) return const AiCardResult();
+
+    final merchantName = lines.first;
+
+    // 1. Look for a pure numeric barcode (EAN13, EAN8, etc.)
+    final digitsPattern = RegExp(r'\b\d{8,}\b');
+    String? barcodeValue;
+    for (final line in lines) {
+      final m = digitsPattern.firstMatch(line);
+      if (m != null) {
+        barcodeValue = m.group(0);
+        break;
+      }
+    }
+
+    // 2. If no digit barcode found, look for uppercase alphanumeric token (CODE128 etc.)
+    if (barcodeValue == null) {
+      final alphaPattern = RegExp(r'^[A-Z0-9\-]{6,}$');
+      for (final line in lines.skip(1)) {
+        if (alphaPattern.hasMatch(line)) {
+          barcodeValue = line;
+          break;
+        }
+      }
+    }
+
+    debugPrint('[AiCardService] OCR fallback → merchant="$merchantName" barcode="$barcodeValue"');
+    return AiCardResult(merchantName: merchantName, barcodeValue: barcodeValue);
   }
 }

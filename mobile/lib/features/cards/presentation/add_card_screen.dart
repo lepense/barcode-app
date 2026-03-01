@@ -89,27 +89,27 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Kart İçe Aktar'),
+          title: const Text('Import Card'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Bu QR kod bir Barcode Wallet kartı içeriyor:'),
+              const Text('This QR code contains a Barcode Wallet card:'),
               const SizedBox(height: 12),
-              Text('Mağaza: ${shared.merchantName}',
+              Text('Store: ${shared.merchantName}',
                   style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text('Barkod: ${shared.barcodeValue}'),
-              Text('Tür: ${shared.barcodeType}'),
+              Text('Barcode: ${shared.barcodeValue}'),
+              Text('Type: ${shared.barcodeType}'),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('İptal'),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Ekle'),
+              child: const Text('Add'),
             ),
           ],
         ),
@@ -152,7 +152,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
       _merchantController.text = name;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('İsim otomatik tespit edildi: $name'),
+          content: Text('Name auto-detected: $name'),
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -180,7 +180,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
       if (!result.hasData) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Kart bilgisi tanınamadı, lütfen manuel girin'),
+            content: Text('Card info not recognized, please enter manually'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -209,8 +209,8 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
           SnackBar(
             content: Text(
               result.merchantName?.isNotEmpty ?? false
-                  ? 'AI ile tespit edildi: ${result.merchantName}'
-                  : 'AI tarama tamamlandı',
+                  ? 'AI detected: ${result.merchantName}'
+                  : 'AI scan complete',
             ),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
@@ -221,7 +221,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('AI tarama hatası: $e'),
+          content: Text('AI scan error: $e'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -251,7 +251,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Kart kaydedilemedi: $e')),
+          SnackBar(content: Text('Failed to save card: $e')),
         );
       }
     } finally {
@@ -265,7 +265,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kart Ekle'),
+        title: const Text('Add Card'),
         actions: [
           if (_isAiScanning)
             const Padding(
@@ -278,7 +278,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
           else
             IconButton(
               icon: const Icon(Icons.auto_awesome_outlined),
-              tooltip: 'Kartı AI ile tara',
+              tooltip: 'AI Card Scan',
               onPressed: _aiScan,
             ),
         ],
@@ -298,7 +298,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                   controller: _merchantController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    labelText: 'Mağaza / Kart Adı',
+                    labelText: 'Store / Card Name',
                     prefixIcon: const Icon(Icons.store),
                     suffixIcon: _isLookingUp
                         ? const Padding(
@@ -311,10 +311,10 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                             ),
                           )
                         : null,
-                    helperText: _isLookingUp ? 'İsim aranıyor…' : null,
+                    helperText: _isLookingUp ? 'Looking up name...' : null,
                   ),
                   validator: (v) =>
-                      v != null && v.isNotEmpty ? null : 'Mağaza adı girin',
+                      v != null && v.isNotEmpty ? null : 'Enter store name',
                 ),
 
                 const SizedBox(height: 16),
@@ -326,9 +326,9 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                   key: ValueKey(_selectedBarcodeType),
                   value: _selectedBarcodeType,
                   decoration: const InputDecoration(
-                    labelText: 'Barkod Türü',
+                    labelText: 'Barcode Type',
                     prefixIcon: Icon(Icons.qr_code),
-                    helperText: 'Tarama yapılınca otomatik seçilir',
+                    helperText: 'Auto-selected when scanning',
                   ),
                   items: _barcodeTypes
                       .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -344,16 +344,16 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                 TextFormField(
                   controller: _barcodeController,
                   decoration: InputDecoration(
-                    labelText: 'Barkod Değeri',
+                    labelText: 'Barcode Value',
                     prefixIcon: const Icon(Icons.dialpad),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.camera_alt_outlined),
-                      tooltip: 'Barkodu tara',
+                      tooltip: 'Scan barcode',
                       onPressed: _isLookingUp ? null : _openScanner,
                     ),
                   ),
                   validator: (v) =>
-                      v != null && v.isNotEmpty ? null : 'Barkod değeri girin',
+                      v != null && v.isNotEmpty ? null : 'Enter barcode value',
                 ),
 
                 const SizedBox(height: 12),
@@ -367,7 +367,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Kamerayı açıp barkodu tarayınca tür ve isim otomatik dolar',
+                        'Scan barcode to auto-fill type and name',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context).colorScheme.outline,
                             ),
@@ -386,7 +386,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.save_outlined),
-                  label: const Text('Kartı Kaydet'),
+                  label: const Text('Save Card'),
                 ),
               ],
             ),
@@ -455,11 +455,11 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Barkodu Tara'),
+        title: const Text('Scan Barcode'),
         actions: [
           IconButton(
             icon: const Icon(Icons.flash_on),
-            tooltip: 'Flaş',
+            tooltip: 'Flash',
             onPressed: () => _controller.toggleTorch(),
           ),
         ],
@@ -501,7 +501,7 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
             left: 0,
             right: 0,
             child: Text(
-              'Barkodu çerçeve içine hizalayın\nTür ve isim otomatik algılanacak',
+              'Align barcode in frame\nType and name will be auto-detected',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white,

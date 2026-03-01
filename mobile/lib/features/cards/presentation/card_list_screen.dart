@@ -110,7 +110,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Henüz kart yok',
+            'No cards yet',
             style: theme.textTheme.titleLarge?.copyWith(
               color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w600,
@@ -118,7 +118,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'İlk sadakat kartını eklemek için + düğmesine bas',
+            'Tap + to add your first loyalty card',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.outline,

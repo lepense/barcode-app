@@ -71,14 +71,14 @@ class ShareCardSheet extends StatelessWidget {
             ),
 
             Text(
-              'Kartı Paylaş',
+              'Share Card',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              '${card.merchantName} kartını arkadaşlarınla paylaş',
+              'Share your ${card.merchantName} card with friends',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -136,14 +136,14 @@ class ShareCardSheet extends StatelessWidget {
             // Copy payload button (for debugging / manual transfer)
             OutlinedButton.icon(
               icon: const Icon(Icons.copy_outlined, size: 16),
-              label: const Text('Kart numarasını kopyala'),
+              label: const Text('Copy card number'),
               style: OutlinedButton.styleFrom(
                 visualDensity: VisualDensity.compact,
               ),
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: card.barcodeValue));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Kart numarası kopyalandı')),
+                  const SnackBar(content: Text('Card number copied')),
                 );
               },
             ),
@@ -151,8 +151,8 @@ class ShareCardSheet extends StatelessWidget {
             const SizedBox(height: 12),
 
             Text(
-              'Karşı taraf Barcode Wallet uygulamasını açıp\n'
-              'barkod tarayıcısını bu QR koda tutmalı.',
+              'The recipient should open Barcode Wallet\n'
+              'and scan this QR code with the barcode scanner.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
