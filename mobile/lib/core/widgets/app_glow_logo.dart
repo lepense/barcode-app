@@ -32,13 +32,13 @@ class AppGlowLogo extends StatelessWidget {
           // Border glow — hugs the logo edge
           BoxShadow(
             color: _goldInner.withAlpha((160 * g).round()),
-            blurRadius: 6 * g,
+            blurRadius: 3 * g,
             spreadRadius: 0,
           ),
           // Soft rim — just a couple of pixels beyond the border
           BoxShadow(
             color: _goldOuter.withAlpha((80 * g).round()),
-            blurRadius: 12 * g,
+            blurRadius: 6 * g,
             spreadRadius: 0,
           ),
         ],
