@@ -102,7 +102,7 @@ class _SplashScreenState extends State<SplashScreen>
                   opacity: _logoOpacity.value,
                   child: Transform.scale(
                     scale: _scale.value,
-                    child: AppGlowLogo(size: 400.0, glowIntensity: _glow.value),
+                    child: AppGlowLogo(glowIntensity: _glow.value),
                   ),
                 ),
               ),
