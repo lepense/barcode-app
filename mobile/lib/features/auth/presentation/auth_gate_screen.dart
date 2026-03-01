@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/widgets/app_glow_logo.dart';
 import '../domain/auth_repository.dart';
 
 class AuthGateScreen extends ConsumerStatefulWidget {
@@ -12,9 +13,64 @@ class AuthGateScreen extends ConsumerStatefulWidget {
   ConsumerState<AuthGateScreen> createState() => _AuthGateScreenState();
 }
 
-class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
+class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
+    with TickerProviderStateMixin {
+  // ── Auth state ─────────────────────────────────────────────────────────────
   bool _loading = false;
   String? _error;
+
+  // ── Logo animation controllers ─────────────────────────────────────────────
+  late final AnimationController _entryCtrl;
+  late final AnimationController _glowCtrl;
+
+  late final Animation<double> _scale;
+  late final Animation<double> _logoOpacity;
+  late final Animation<double> _glow;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Entry: fade-in + elastic scale (700 ms)
+    _entryCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _scale = Tween<double>(begin: 0.55, end: 1.0).animate(
+      CurvedAnimation(parent: _entryCtrl, curve: Curves.elasticOut),
+    );
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.0, 0.55, curve: Curves.easeIn),
+      ),
+    );
+
+    // Glow: breathes continuously (950 ms / cycle)
+    _glowCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 950),
+    );
+    _glow = Tween<double>(begin: 0.35, end: 1.0).animate(
+      CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut),
+    );
+
+    _startLogoAnimation();
+  }
+
+  Future<void> _startLogoAnimation() async {
+    await _entryCtrl.forward();
+    _glowCtrl.repeat(reverse: true); // breathes forever while on this screen
+  }
+
+  @override
+  void dispose() {
+    _entryCtrl.dispose();
+    _glowCtrl.dispose();
+    super.dispose();
+  }
+
+  // ── Auth actions ───────────────────────────────────────────────────────────
 
   Future<void> _signInWithGoogle() async {
     setState(() { _loading = true; _error = null; });
@@ -23,8 +79,8 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
       // Router redirect will handle navigation
     } on AuthException catch (e) {
       setState(() => _error = e.message);
-    } catch (_) {
-      setState(() => _error = 'Something went wrong');
+    } catch (e) {
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -36,12 +92,14 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
       await ref.read(authRepositoryProvider).signInWithApple();
     } on AuthException catch (e) {
       setState(() => _error = e.message);
-    } catch (_) {
-      setState(() => _error = 'Something went wrong');
+    } catch (e) {
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -55,14 +113,27 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(
-                Icons.qr_code_2,
-                size: 80,
-                color: theme.colorScheme.primary,
+              // ── Animated glow logo (1.5× splash size = 300 px) ──────────
+              AnimatedBuilder(
+                animation: Listenable.merge([_entryCtrl, _glowCtrl]),
+                builder: (_, __) => Center(
+                  child: Opacity(
+                    opacity: _logoOpacity.value,
+                    child: Transform.scale(
+                      scale: _scale.value,
+                      child: AppGlowLogo(
+                        size: 300.0,
+                        glowIntensity: _glow.value,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 32),
+
               Text(
-                'Barcode App',
+                'Barcode Wallet',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
@@ -96,7 +167,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Sign in with Apple (iOS only, hidden on Android/Web)
+              // Sign in with Apple (iOS only)
               if (Theme.of(context).platform == TargetPlatform.iOS)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),

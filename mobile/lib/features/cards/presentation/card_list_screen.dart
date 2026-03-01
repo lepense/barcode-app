@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
-class CardListScreen extends StatelessWidget {
+import '../../../core/constants/app_constants.dart';
+import '../../../core/providers/cards_provider.dart';
+import '../../../core/services/widget_service.dart';
+import 'card_cover_widget.dart';
+
+class CardListScreen extends ConsumerWidget {
   const CardListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cardsAsync = ref.watch(cardsStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -18,31 +25,34 @@ class CardListScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.credit_card_off,
-              size: 64,
-              color: theme.colorScheme.outline,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No cards yet',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap + to add your first loyalty card',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
-            ),
-          ],
+      body: cardsAsync.when(
+        loading: () => Center(
+          child: Lottie.asset(
+            LottieAssets.loading,
+            width: 80,
+            height: 80,
+            repeat: true,
+          ),
         ),
+        error: (e, _) => Center(child: Text('Error: $e')),
+        data: (cards) {
+          // Keep widget in sync with the first card in the list
+          if (cards.isNotEmpty) WidgetService.updateWithCard(cards.first);
+          return cards.isEmpty
+            ? const _EmptyState()
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: cards.length,
+                itemBuilder: (context, index) {
+                  final card = cards[index];
+                  return LoyaltyCardCover(
+                    key: ValueKey(card.id),
+                    card: card,
+                    onTap: () => context.push('/home/card/${card.id}'),
+                  );
+                },
+              );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/home/add'),
@@ -53,7 +63,7 @@ class CardListScreen extends StatelessWidget {
         onDestinationSelected: (index) {
           switch (index) {
             case 0:
-              break; // Already on cards
+              break;
             case 1:
               context.push('/designs');
             case 2:
@@ -72,6 +82,47 @@ class CardListScreen extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             label: 'Settings',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Lottie.asset(
+            LottieAssets.emptyCards,
+            width: 200,
+            height: 200,
+            repeat: true,
+            frameRate: FrameRate.max,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'No cards yet',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap + to add your first loyalty card',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
           ),
         ],
       ),

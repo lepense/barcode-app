@@ -16,6 +16,10 @@ class CardsDao extends DatabaseAccessor<AppDatabase> with _$CardsDaoMixin {
   Future<Card> getCardById(int id) =>
       (select(cards)..where((c) => c.id.equals(id))).getSingle();
 
+  /// Emits a new [Card] whenever the row with [id] changes in the DB.
+  Stream<Card> watchCardById(int id) =>
+      (select(cards)..where((c) => c.id.equals(id))).watchSingle();
+
   Future<int> insertCard(CardsCompanion entry) => into(cards).insert(entry);
 
   Future<bool> updateCard(Card entry) => update(cards).replace(entry);
@@ -29,4 +33,10 @@ class CardsDao extends DatabaseAccessor<AppDatabase> with _$CardsDaoMixin {
   Future<void> markSynced(int id) =>
       (update(cards)..where((c) => c.id.equals(id)))
           .write(const CardsCompanion(isSynced: Value(true)));
+
+  /// Sets both remoteId and isSynced=true in a single write.
+  Future<void> markSyncedWithRemoteId(int id, String remoteId) =>
+      (update(cards)..where((c) => c.id.equals(id))).write(
+        CardsCompanion(isSynced: const Value(true), remoteId: Value(remoteId)),
+      );
 }

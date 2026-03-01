@@ -1,8 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="barcode_app"
+        android:label="Barcode Wallet"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:extractNativeLibs="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -30,12 +31,32 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Home screen widget -->
+        <receiver
+            android:name=".BarcodeWalletWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/barcode_wallet_widget_info" />
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <!-- image_picker: camera + photo library access -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Android ≤ 12 (API 32) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+    <!-- Android 13+ (API 33) granular media permissions -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>

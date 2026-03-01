@@ -30,5 +30,10 @@
       "enabled": true
     },
     "singleProjectMode": true
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true
+    }
   }
 }

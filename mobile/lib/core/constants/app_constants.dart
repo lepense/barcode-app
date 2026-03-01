@@ -1,8 +1,25 @@
+/// Lottie animation asset paths.
+class LottieAssets {
+  LottieAssets._();
+
+  /// Boş kart listesi ekranında gösterilen animasyon.
+  static const String emptyCards = 'assets/animations/empty_cards.json';
+
+  /// Barkod tarama başarılı olduğunda gösterilen animasyon.
+  static const String scanSuccess = 'assets/animations/scan_success.json';
+
+  /// Veri yüklenirken gösterilen loading animasyonu.
+  static const String loading = 'assets/animations/loading.json';
+
+  /// Paywall / premium ekranında gösterilen animasyon.
+  static const String premiumCrown = 'assets/animations/premium_crown.json';
+}
+
 /// Application-wide constants.
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'Barcode App';
+  static const String appName = 'Barcode Wallet';
   static const String appVersion = '1.0.0';
 
   // Barcode types supported
@@ -18,4 +35,27 @@ class AppConstants {
     'AZTEC',
     'DATA_MATRIX',
   ];
+
+  // IAP SKUs — must match App Store Connect / Google Play Console exactly
+  static const String skuProLifetime = 'pro_lifetime';
+  static const String skuPackLuxury = 'pack_luxury';
+  static const String skuPackNeon = 'pack_neon';
+
+  static const Set<String> allSkus = {
+    skuProLifetime,
+    skuPackLuxury,
+    skuPackNeon,
+  };
+
+  // Gemini AI — get your key at https://aistudio.google.com → "Get API key"
+  // ⚠️  Paste your key here. Do NOT commit to git (add to .gitignore or use --dart-define).
+  static const String geminiApiKey = '';
+
+  // Firebase Function base URLs
+  static const String _fnBase =
+      'https://us-central1-barcode-app-5919e.cloudfunctions.net';
+
+  static const String iapVerifyUrl = '$_fnBase/iapApi/verify';
+  static const String syncPushUrl  = '$_fnBase/syncApi/push';
+  static const String syncPullUrl  = '$_fnBase/syncApi/pull';
 }

@@ -1,4 +1,6 @@
-import * as functions from "firebase-functions";
+// Auth triggers require the v1 API — firebase-functions v6 defaults to v2
+// which does not expose the .auth namespace.
+import * as functionsV1 from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
 // Initialize admin SDK (only once across all files)
@@ -12,7 +14,7 @@ const db = admin.firestore();
  * Triggered when a new user is created in Firebase Auth.
  * Creates a corresponding user document in Firestore.
  */
-export const onUserCreated = functions.auth.user().onCreate(async (user) => {
+export const onUserCreated = functionsV1.auth.user().onCreate(async (user) => {
   const { uid, email, displayName, photoURL } = user;
 
   // Determine sign-in provider
@@ -43,14 +45,14 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
     photoOverlayCount: 0,
   });
 
-  functions.logger.info(`User document created for ${uid}`);
+  functionsV1.logger.info(`User document created for ${uid}`);
 });
 
 /**
  * Triggered when a user is deleted from Firebase Auth.
  * Cleans up all user data from Firestore.
  */
-export const onUserDeleted = functions.auth.user().onDelete(async (user) => {
+export const onUserDeleted = functionsV1.auth.user().onDelete(async (user) => {
   const { uid } = user;
 
   // Delete subcollections
@@ -74,5 +76,5 @@ export const onUserDeleted = functions.auth.user().onDelete(async (user) => {
   logsSnapshot.docs.forEach((doc) => logsBatch.delete(doc.ref));
   await logsBatch.commit();
 
-  functions.logger.info(`User data cleaned up for ${uid}`);
+  functionsV1.logger.info(`User data cleaned up for ${uid}`);
 });
