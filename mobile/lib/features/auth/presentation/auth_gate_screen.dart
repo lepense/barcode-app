@@ -113,7 +113,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Animated glow logo (1.5× splash size = 300 px) ──────────
+              // ── Animated glow logo (3× splash size = 600 px) ──────────
               AnimatedBuilder(
                 animation: Listenable.merge([_entryCtrl, _glowCtrl]),
                 builder: (_, __) => Center(
@@ -122,7 +122,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                     child: Transform.scale(
                       scale: _scale.value,
                       child: AppGlowLogo(
-                        size: 300.0,
+                        size: 600.0,
                         glowIntensity: _glow.value,
                       ),
                     ),
